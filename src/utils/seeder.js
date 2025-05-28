@@ -16,7 +16,7 @@ const usersData = [
     fullName: "Testing Brand",
     email: "brand@gmail.com",
     phoneNumber: "01735566789",
-    password: "1qazxsw2",
+    password: "$2a$08$MqWqce.KyCkspZvasAG3vefIYj4LKwZQPUKxbWWXmUY9uanlWXVgC",
     role: "brand",
     isEmailVerified: "true"
   },

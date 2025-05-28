@@ -37,6 +37,26 @@ const getUsers = catchAsync(async (req, res) => {
     );
 });
 
+/// Logged in user get user
+const loggedInUser = catchAsync(async (req, res) => {
+  const user = await userService.loggedInUser(req.user.id);
+
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  } 
+
+  res
+    .status(httpStatus.OK)
+    .json(
+      response({
+        message: "User",
+        status: "OK",
+        statusCode: httpStatus.OK,
+        data: user,
+      })
+    );
+});
+
 const getUser = catchAsync(async (req, res) => {
   let user = await userService.getUserById(req.params.userId);
 
@@ -102,4 +122,5 @@ module.exports = {
   getUser,
   updateUser,
   deleteUser,
+  loggedInUser,
 };

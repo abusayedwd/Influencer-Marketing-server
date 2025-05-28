@@ -14,6 +14,8 @@ const router = express.Router();
 
 router.route("/").get(auth("user"), userController.getUsers);
 
+router.route("/loggedInUser").get(auth("common"), userController.loggedInUser);
+
 router
   .route("/:userId")
   .get(auth("common"), validate(userValidation.getUser), userController.getUser)
