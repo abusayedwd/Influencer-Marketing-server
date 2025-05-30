@@ -77,30 +77,80 @@ const getUser = catchAsync(async (req, res) => {
     );
 });
 
-const updateUser = catchAsync(async (req, res) => {
+// const updateUser = catchAsync(async (req, res) => {
 
-  const image = {};
+//   const image = {};
+//   if (req.file) {
+//     image.url = "/uploads/users/" + req.file.filename;
+//     image.path = req.file.path;
+//   }
+//   if (req.file) {
+//     req.body.image = image;
+//   }
+
+//   const user = await userService.updateUserById(req.params.userId, req.body);
+
+//   res
+//     .status(httpStatus.OK)
+//     .json(
+//       response({
+//         message: "User Updated",
+//         status: "OK",
+//         statusCode: httpStatus.OK,
+//         data: user,
+//       })
+//     );
+// });
+
+
+const updateUser = catchAsync(async (req, res) => {
+  // Handle uploaded image (single file)
   if (req.file) {
-    image.url = "/uploads/users/" + req.file.filename;
-    image.path = req.file.path;
+    req.body.image = {
+      url: '/uploads/users/' + req.file.filename,
+      path: req.file.path,
+    };
   }
-  if (req.file) {
-    req.body.image = image;
+
+  // Parse socialMedia if stringified JSON (form-data)
+  if (req.body.socialMedia && typeof req.body.socialMedia === 'string') {
+    try {
+      req.body.socialMedia = JSON.parse(req.body.socialMedia);
+    } catch (e) {
+      return res.status(400).json({
+        message: 'Invalid JSON format for socialMedia',
+        status: 'BAD_REQUEST',
+        statusCode: 400,
+      });
+    }
+  }
+
+  // Parse interests if stringified JSON (form-data)
+  if (req.body.interests && typeof req.body.interests === 'string') {
+    try {
+      req.body.interests = JSON.parse(req.body.interests);
+    } catch (e) {
+      return res.status(400).json({
+        message: 'Invalid JSON format for interests',
+        status: 'BAD_REQUEST',
+        statusCode: 400,
+      });
+    }
   }
 
   const user = await userService.updateUserById(req.params.userId, req.body);
 
-  res
-    .status(httpStatus.OK)
-    .json(
-      response({
-        message: "User Updated",
-        status: "OK",
-        statusCode: httpStatus.OK,
-        data: user,
-      })
-    );
+  res.status(httpStatus.OK).json(
+    response({
+      message: 'User Updated',
+      status: 'OK',
+      statusCode: httpStatus.OK,
+      data: user,
+    })
+  );
 });
+
+
 
 const deleteUser = catchAsync(async (req, res) => {
   await userService.deleteUserById(req.params.userId);

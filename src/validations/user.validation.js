@@ -21,7 +21,7 @@ const createUser = {
                 "linkedin",
                 "snapchat"
               ),
-              url: Joi.string().uri(),
+              url: Joi.string(),
             })
           )
           .optional(),
