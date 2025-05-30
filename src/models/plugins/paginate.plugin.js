@@ -53,10 +53,10 @@ const paginate = (schema) => {
 module.exports = paginate;
 
 
-// const options = {
-//   sortBy: 'createdAt:desc',
-//   limit: 10,
-//   page: 1,
-//   populate: 'crewLeaders image username fullName email, affiliations' // Specify fields for crewLeaders and affiliations
-// };
+const options = {
+  sortBy: 'createdAt:desc',
+  limit: 10,
+  page: 1,
+  populate: 'crewLeaders image username fullName email, affiliations' // Specify fields for crewLeaders and affiliations
+};
 // Example

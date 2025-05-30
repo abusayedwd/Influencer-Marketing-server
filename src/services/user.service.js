@@ -20,28 +20,44 @@ const createUser = async (userBody) => {
 
 
 
+
 const queryUsers = async (filter, options) => {
   const query = {};
 
-  // Loop through each filter field and add conditions if they exist
   for (const key of Object.keys(filter)) {
-    if (
-      (key === "fullName" || key === "email" || key === "username") &&
-      filter[key] !== ""
-    ) {
-      query[key] = { $regex: filter[key], $options: "i" }; // Case-insensitive regex search for name
-    } else if (filter[key] !== "") {
+    if ((key === 'fullName' || key === 'email' || key === 'userName') && filter[key] !== '') {
+      query[key] = { $regex: filter[key], $options: 'i' }; // case-insensitive partial match
+    } else if (key === 'interests' && filter[key] !== '') {
+      // filter[key] can be comma-separated string or single interest
+      // Convert to array if string contains commas
+      let interestsArray = [];
+      if (typeof filter[key] === 'string') {
+        interestsArray = filter[key].split(',').map((i) => i.trim());
+      } else if (Array.isArray(filter[key])) {
+        interestsArray = filter[key];
+      }
+
+      query.interests = { $in: interestsArray };
+    } else if (key === 'socialMedia' && filter[key] !== '') {
+      // filter[key] is platform name, can also be comma-separated
+      let platforms = [];
+      if (typeof filter[key] === 'string') {
+        platforms = filter[key].split(',').map((p) => p.trim());
+      } else if (Array.isArray(filter[key])) {
+        platforms = filter[key];
+      }
+
+      query.socialMedia = { $elemMatch: { platform: { $in: platforms } } };
+    } else if (filter[key] !== '') {
       query[key] = filter[key];
     }
   }
 
+  // Use mongoose-paginate-v2 plugin for pagination
   const users = await User.paginate(query, options);
-
-  // Convert height and age to feet/inches here...
 
   return users;
 };
-
 
 
 const getUserById = async (id) => {

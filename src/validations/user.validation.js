@@ -8,8 +8,24 @@ const createUser = {
     fullName: Joi.string().required(),
     userName: Joi.string().required(), 
     userName: Joi.string().required(),
-    dateOfBirth: Joi.string().required(), 
-    socialMedia: Joi.string().required(),
+    dateOfBirth: Joi.string(), 
+    socialMedia: Joi.array()
+          .items(
+            Joi.object({
+              platform: Joi.string().valid(
+                "facebook",
+                "instagram",
+                "tiktok",
+                "youtube",
+                "twitter",
+                "linkedin",
+                "snapchat"
+              ),
+              url: Joi.string().uri(),
+            })
+          )
+          .optional(),
+    
     role: Joi.string().required().valid("user","influencer","brand", "admin"),
   }),
 };

@@ -22,19 +22,20 @@ const createUser = catchAsync(async (req, res) => {
 
 
 const getUsers = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ["name", "role", "gender"]);
-  const options = pick(req.query, ["sortBy", "limit", "page"]);
+  // Extract filters and options from query params
+  const filter = pick(req.query, ['fullName', 'role', 'gender', 'interests', 'socialMedia']);
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+
   const result = await userService.queryUsers(filter, options);
-  res
-    .status(httpStatus.OK)
-    .json(
-      response({
-        message: "All Users",
-        status: "OK",
-        statusCode: httpStatus.OK,
-        data: result,
-      })
-    );
+
+  res.status(httpStatus.OK).json(
+    response({
+      message: 'All Users',
+      status: 'OK',
+      statusCode: httpStatus.OK,
+      data: result,
+    })
+  );
 });
 
 /// Logged in user get user
