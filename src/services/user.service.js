@@ -83,17 +83,21 @@ const getUserByEmail = async (email) => {
 //     throw new ApiError(httpStatus.BAD_REQUEST, "Email already taken");
 //   }
 
-//   if (files && files.length > 0) {
-//     updateBody.photo = files;
-//   } else {
-//     delete updateBody.photo; // remove the photo property from the updateBody if no new photo is provided
-//   }
+  // if (files && files.length > 0) {
+  //   updateBody.photo = files;
+  // } else {
+  //   delete updateBody.photo; // remove the photo property from the updateBody if no new photo is provided
+  // }
 
 //   Object.assign(user, updateBody);
 //   await user.save();
 //   return user;
 // };
+
+
+
 const updateUserById = async (userId, updateBody) => {
+
   const user = await getUserById(userId);
 
   if (!user) {
@@ -105,6 +109,7 @@ const updateUserById = async (userId, updateBody) => {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   }
 
+  
   // Update fields safely
   user.set(updateBody);
 

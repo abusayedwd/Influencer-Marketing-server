@@ -148,6 +148,7 @@ const register = {
             "snapchat"
           ),
           url: Joi.string(),
+          followers: Joi.string(),
         })
       )
       .optional(),

@@ -177,7 +177,7 @@ const userSchema = mongoose.Schema(
     image: {
       type: Object,
       required: [true, "Image is required"],
-      default: { url: `/uploads/users/user.png`, path: "null" },
+      default: { url: `/uploads/users/users-1748606204040.jpg`, path: "null" },
     },
     password: {
       type: String,
@@ -206,12 +206,13 @@ const userSchema = mongoose.Schema(
        required: true,
        default: "22-04-25"
     },
-    socialMedia: [
-      {
-        platform: { type: String },
-        url: { type: String },
-      },
-    ],
+socialMedia: [
+  {
+    platform: { type: String },
+    url: { type: String },
+    followers: { type: String },  
+  },
+],
     interests: {
       type: [String],
       default: [],

@@ -79,14 +79,14 @@ const getUser = catchAsync(async (req, res) => {
 
 // const updateUser = catchAsync(async (req, res) => {
 
-//   const image = {};
-//   if (req.file) {
-//     image.url = "/uploads/users/" + req.file.filename;
-//     image.path = req.file.path;
-//   }
-//   if (req.file) {
-//     req.body.image = image;
-//   }
+  // const image = {};
+  // if (req.file) {
+  //   image.url = "/uploads/users/" + req.file.filename;
+  //   image.path = req.file.path;
+  // }
+  // if (req.file) {
+  //   req.body.image = image;
+  // }
 
 //   const user = await userService.updateUserById(req.params.userId, req.body);
 
@@ -105,11 +105,13 @@ const getUser = catchAsync(async (req, res) => {
 
 const updateUser = catchAsync(async (req, res) => {
   // Handle uploaded image (single file)
+   const image = {};
   if (req.file) {
-    req.body.image = {
-      url: '/uploads/users/' + req.file.filename,
-      path: req.file.path,
-    };
+    image.url = "/uploads/users/" + req.file.filename;
+    image.path = req.file.path;
+  }
+  if (req.file) {
+    req.body.image = image;
   }
 
   // Parse socialMedia if stringified JSON (form-data)
