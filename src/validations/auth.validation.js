@@ -138,15 +138,7 @@ const register = {
     socialMedia: Joi.array()
       .items(
         Joi.object({
-          platform: Joi.string().valid(
-            "facebook",
-            "instagram",
-            "tiktok",
-            "youtube",
-            "twitter",
-            "linkedin",
-            "snapchat"
-          ),
+          platform: Joi.string(),
           url: Joi.string(),
           followers: Joi.string(),
         })

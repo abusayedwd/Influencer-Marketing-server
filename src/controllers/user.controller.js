@@ -72,7 +72,7 @@ const getUser = catchAsync(async (req, res) => {
         message: "User",
         status: "OK",
         statusCode: httpStatus.OK,
-        data: { user, mySubscription },
+        data: { user},
       })
     );
 });
