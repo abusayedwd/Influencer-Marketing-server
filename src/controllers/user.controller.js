@@ -38,7 +38,15 @@ const getUsers = catchAsync(async (req, res) => {
   );
 });
 
-/// Logged in user get user
+ 
+
+ 
+
+
+
+
+
+
 const loggedInUser = catchAsync(async (req, res) => {
   const user = await userService.loggedInUser(req.user.id);
 
