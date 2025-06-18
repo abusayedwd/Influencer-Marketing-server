@@ -120,6 +120,10 @@ socialMedia: [
       type: String,
       default: "",
     },
+    planName: {
+      type: String,
+      default: "no-plan",
+    },
     isEmailVerified: {
       type: Boolean,
       default: false,
@@ -133,6 +137,10 @@ socialMedia: [
       default: false,
     },
     isInterest: {
+      type: Boolean,
+      default: false,
+    },
+    isSubscribe: {
       type: Boolean,
       default: false,
     },
