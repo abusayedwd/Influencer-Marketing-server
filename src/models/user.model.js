@@ -152,6 +152,11 @@ socialMedia: [
       type: Boolean,
       default: false,
     },
+     subscriptionId : {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PlanSubscription",
+      required: true,
+    },
   },
   {
     timestamps: true,
