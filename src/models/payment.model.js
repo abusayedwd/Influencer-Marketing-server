@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { toJSON, paginate } = require("./plugins");
 
 const planSubscriptionSchema = new mongoose.Schema(
   {
@@ -37,6 +38,9 @@ const planSubscriptionSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+planSubscriptionSchema.plugin(toJSON);
+planSubscriptionSchema.plugin(paginate);
 
 const PlanSubscription = mongoose.model("PlanSubscription", planSubscriptionSchema);
 module.exports = PlanSubscription;

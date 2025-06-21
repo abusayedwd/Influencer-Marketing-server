@@ -1,10 +1,16 @@
 // ===== PAYMENT CONTROLLER (payment.controller.js) =====
 const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
+const httpStatus = require("http-status");
 const { User } = require("../models");
 const PlanSubscription = require("../models/payment.model");
+ 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 const catchAsync = require("../utils/catchAsync");
+const { subscriptionService } = require("../services");
+const pick = require("../utils/pick");
+const response = require("../config/response");
+const ApiError = require("../utils/ApiError");
 
 const createPlanPayment = catchAsync(async (req, res) => {
   const { planName, price, duration } = req.body;
@@ -321,6 +327,86 @@ const stripeWebhook = async (req, res) => {
   }
 };
 
+
+const getMySubscription = catchAsync(async (req, res) => {
+  const userId = req?.user?.id; // Get user ID from authenticated request
+
+  // Validate user ID
+  if (!userId) {
+    return res.status(400).json({ message: "User ID is required." });
+  } 
+  // Fetch the user's subscription details
+  const subscription = await PlanSubscription.findOne({ userId });
+
+  if (!subscription) { 
+    throw new ApiError(httpStatus.NOT_FOUND, "No active subscription found");
+  }
+
+  res.status(httpStatus.OK).json(
+    response({
+      message: '',
+      status: 'OK',
+      statusCode: httpStatus.OK,
+      data: subscription,
+    })
+  );
+
+});
+
+
+const getSubscriptionById = catchAsync(async (req, res) => {
+  const { id } = req.params; 
+console.log(id, "Subscription ID from request parameters");
+  // Validate the subscription ID
+  if (!id) {
+    return res.status(httpStatus.BAD_REQUEST).json({ message: "Subscription ID is required." });
+  }
+
+  // Fetch the subscription details by ID
+  const subscription = await PlanSubscription.findById(id);
+console.log(subscription, "Subscription details fetched by ID");
+ 
+  if (!subscription) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Subscription not found");
+  }
+
+  // Return the found subscription as response
+  res.status(httpStatus.OK).json(
+    response({
+      message: 'Successfully fetched subscription details',
+      status: 'OK',
+      statusCode: httpStatus.OK,
+      data: subscription,
+    })
+  );
+});
+
+
+const getAllSubscriptions = catchAsync(async (req, res) => {
+  
+  const filter = pick(req.query, ['planName', 'status', 'price']); 
+ 
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+
+  // Call the service to get subscriptions with filter and options
+  const subscriptions = await subscriptionService.getAllSubscriptionsService(filter, options);
+
+  if (!subscriptions || subscriptions?.length === 0) { 
+    throw new ApiError(httpStatus.NOT_FOUND, "No subscriptions found.");
+  }
+
+   res.status(httpStatus.OK).json(
+    response({
+      message: 'All Subscriptions',
+      status: 'OK',
+      statusCode: httpStatus.OK,
+      data: subscriptions,
+    })
+  ); 
+
+});
+
+ 
  
 
 
@@ -328,5 +414,8 @@ const stripeWebhook = async (req, res) => {
 
 module.exports = {
   createPlanPayment,
-  stripeWebhook 
+  stripeWebhook ,
+  getAllSubscriptions,
+  getMySubscription,
+  getSubscriptionById
 };

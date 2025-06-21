@@ -1,16 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const bodyParser = require('body-parser');
-const { createPlanPayment, stripeWebhook } = require('../../controllers/payment.controller');
 const auth = require('../../middlewares/auth');
+const { subscriptionController } = require('../../controllers');
 
 // CRITICAL: Webhook route must be defined BEFORE any global JSON middleware
 router.post('/webhook-subscription',
   bodyParser.raw({ type: 'application/json' }),  // Ensure that raw body is passed to the webhook
-  stripeWebhook
+  subscriptionController.stripeWebhook
 );
+router.get("/getAllSubscriptions", auth("common"),subscriptionController.getAllSubscriptions);
+
+router.get('/getSubscription/:id', auth('common'), subscriptionController.getSubscriptionById);
+
+router.get("/getMySubscription", auth("common"),subscriptionController.getMySubscription);
 
 // Other routes for payment, such as creating a plan payment
-router.post('/pay',auth('common'), createPlanPayment);
+router.post('/pay',auth('common'), subscriptionController.createPlanPayment);
 
 module.exports = router;

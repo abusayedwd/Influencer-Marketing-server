@@ -3,6 +3,7 @@ const { User } = require("../models");
 const ApiError = require("../utils/ApiError");
 const { sendEmailVerification } = require("./email.service");
 const unlinkImages = require("../common/unlinkImage");
+const PlanSubscription = require("../models/payment.model");
 
 const createUser = async (userBody) => {
   if (await User.isEmailTaken(userBody.email)) {
@@ -19,10 +20,13 @@ const createUser = async (userBody) => {
 };
 
 
-
+ 
 
 // const queryUsers = async (filter, options) => {
 //   const query = {};
+
+ 
+
 
 //   for (const key of Object.keys(filter)) {
 //     if ((key === 'fullName' || key === 'email' || key === 'userName') && filter[key] !== '') {
@@ -53,21 +57,23 @@ const createUser = async (userBody) => {
 //     }
 //   }
 
-//   // Use mongoose-paginate-v2 plugin for pagination
+//   // No need to set default sortBy here anymore - paginate function handles it
 //   const users = await User.paginate(query, options);
+//   const populatedUsers = await User.populate("subscriptionId");
 
 //   return users;
 // };
 
+ 
+ 
 const queryUsers = async (filter, options) => {
   const query = {};
 
+  // Construct the query based on filter
   for (const key of Object.keys(filter)) {
     if ((key === 'fullName' || key === 'email' || key === 'userName') && filter[key] !== '') {
       query[key] = { $regex: filter[key], $options: 'i' }; // case-insensitive partial match
     } else if (key === 'interests' && filter[key] !== '') {
-      // filter[key] can be comma-separated string or single interest
-      // Convert to array if string contains commas
       let interestsArray = [];
       if (typeof filter[key] === 'string') {
         interestsArray = filter[key].split(',').map((i) => i.trim());
@@ -77,7 +83,6 @@ const queryUsers = async (filter, options) => {
 
       query.interests = { $in: interestsArray };
     } else if (key === 'socialMedia' && filter[key] !== '') {
-      // filter[key] is platform name, can also be comma-separated
       let platforms = [];
       if (typeof filter[key] === 'string') {
         platforms = filter[key].split(',').map((p) => p.trim());
@@ -91,12 +96,17 @@ const queryUsers = async (filter, options) => {
     }
   }
 
-  // No need to set default sortBy here anymore - paginate function handles it
-  const users = await User.paginate(query, options);
+  // Use the paginate method and populate the 'subscriptionId' field
+  const users = await User.paginate(query, {
+    ...options,  
+    populate: 'subscriptionId' 
+  });
 
   return users;
 };
 
+
+ 
 
 
 const getUserById = async (id) => {

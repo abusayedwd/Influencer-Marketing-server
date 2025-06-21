@@ -19,7 +19,7 @@ const createUser = {
                 "youtube",
                 "twitter",
                 "linkedin",
-                "snapchat"
+                "snapchat" 
               ),
               url: Joi.string(),
             })

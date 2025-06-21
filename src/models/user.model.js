@@ -155,7 +155,7 @@ socialMedia: [
      subscriptionId : {
       type: mongoose.Schema.Types.ObjectId,
       ref: "PlanSubscription",
-      required: true,
+      default: null,
     },
   },
   {
