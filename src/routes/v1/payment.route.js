@@ -13,9 +13,9 @@ router.get("/getAllSubscriptions", auth("common"),subscriptionController.getAllS
 
 router.get('/getSubscription/:id', auth('common'), subscriptionController.getSubscriptionById);
 
-router.get("/getMySubscription", auth("common"),subscriptionController.getMySubscription);
+router.get("/getMySubscription", auth("common"),subscriptionController.getMySubscriptions);
 
 // Other routes for payment, such as creating a plan payment
 router.post('/pay',auth('common'), subscriptionController.createPlanPayment);
 
-module.exports = router;
+module.exports = router; 

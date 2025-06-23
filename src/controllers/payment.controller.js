@@ -3,7 +3,7 @@ const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
 const httpStatus = require("http-status");
 const { User } = require("../models");
 const PlanSubscription = require("../models/payment.model");
- 
+const cron = require("node-cron");
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 const catchAsync = require("../utils/catchAsync");
@@ -11,6 +11,7 @@ const { subscriptionService } = require("../services");
 const pick = require("../utils/pick");
 const response = require("../config/response");
 const ApiError = require("../utils/ApiError");
+const { default: mongoose } = require("mongoose");
 
 const createPlanPayment = catchAsync(async (req, res) => {
   const { planName, price, duration } = req.body;
@@ -37,21 +38,21 @@ const createPlanPayment = catchAsync(async (req, res) => {
 
   // Create the Stripe Checkout session for the selected plan
   const session = await stripe.checkout.sessions.create({
-    payment_method_types: ["card"],
-    line_items: items.map((item) => ({
-      price_data: {
-        currency: "usd",
-        product_data: {
-          name: item.name,
-        },
-        unit_amount: amount,
-      },
-      quantity: item.quantity,
-    })),
+   payment_method_types: ["card"],
+line_items: items.map((item) => ({
+  price_data: {
+    currency: "eur",  // Change currency to EUR
+    product_data: {
+      name: item.name,
+    },
+    unit_amount: amount,  // Ensure this is in the smallest currency unit (cents)
+  },
+  quantity: item.quantity,
+})),
     mode: "payment",
     // IMPORTANT: Use your actual domain, not localhost IP for production
-    success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/pricing`,
+    success_url: `https://sayed3000.sobhoy.com?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `https://sayed3000.sobhoy.com/pricing`,
     customer_email: req?.user?.email,
     metadata: {
       userId: userId.toString(), // Ensure it's a string
@@ -67,6 +68,7 @@ const createPlanPayment = catchAsync(async (req, res) => {
   const newPlanSubscription = await PlanSubscription.create({
     userId,
     planName,
+    currency: "eur",
     price,
     duration,
     status: "pending",
@@ -75,15 +77,18 @@ const createPlanPayment = catchAsync(async (req, res) => {
   });
 
   // Send response with session URL
-  res.status(200).json({
-    status: 200,
+  res.status(httpStatus.CREATED).json(
+     {
+    status: "success",
+    statusCode: httpStatus.CREATED,
     message: "Plan payment session created successfully.",
     sessionId: session.id,
     url: session.url, // Frontend will use this URL to redirect to Stripe
-    planSubscription: newPlanSubscription,
-  });
+    data : newPlanSubscription,
+  })
+ 
 });
-
+ 
  
 // const stripeWebhook = async (req, res) => {
 //   console.log("Webhook endpoint hit!");
@@ -130,13 +135,15 @@ const createPlanPayment = catchAsync(async (req, res) => {
 //         return res.status(400).json({ error: "Invalid userId" });
 //       }
 
-//       // Calculate expiration date (1 month from now)
+//       // Calculate expiration date (2 minutes from now)
 //       const expirationDate = new Date();
-//       expirationDate.setMonth(expirationDate.getMonth() + 1); // Add 1 month
+//       expirationDate.setMinutes(expirationDate.getMinutes() + 2); // Add 2 minutes
 
 //       // Create subscription record
-//       const newSubscription = new PlanSubscription({
-//         userId,
+//       const updatedSubscription = await PlanSubscription.findOneAndUpdate(
+//         { stripeSessionId: session.id }, // Find the plan subscription by the session ID
+//         {
+//          userId,
 //         planName,
 //         price: session.amount_total / 100, // Assuming amount is in cents
 //         duration,
@@ -144,10 +151,15 @@ const createPlanPayment = catchAsync(async (req, res) => {
 //         stripeSessionId: session.id,
 //         transactionId: session.payment_intent,
 //         expirationDate,
-//       });
+//         },
+//         { new: true } // Return the updated record
+//       );
+//       if (!updatedSubscription) {
+//         console.error("Failed to create or update subscription for session ID:", session.id);
+//         return res.status(500).json({ error: "Failed to create or update subscription" });
+//       }
 
-//       await newSubscription.save();
-//       console.log("New subscription created:", newSubscription);
+//       console.log("New subscription updated:", updatedSubscription);
 
 //       // Update the user with the subscription reference
 //       const updatedUser = await User.findByIdAndUpdate(
@@ -156,7 +168,7 @@ const createPlanPayment = catchAsync(async (req, res) => {
 //           isSubscribe: true,
 //           planName,
 //           subscriptionDate: new Date(),
-//           subscriptionId: newSubscription._id, // Add reference to subscription
+//           subscriptionId: updatedSubscription._id, // Add reference to subscription
 //         },
 //         { new: true }
 //       );
@@ -167,6 +179,30 @@ const createPlanPayment = catchAsync(async (req, res) => {
 //       } else {
 //         console.log("User subscription status updated:", updatedUser);
 //       }
+
+//       // Set a timeout to deactivate subscription after 2 minutes
+//       setTimeout(async () => {
+//         // Deactivate subscription
+//         const statusUpdatedSubscription = await PlanSubscription.findByIdAndUpdate(
+//           updatedSubscription._id,
+//           {
+//             status: "inactive",
+//           },
+//           { new: true }
+//         );
+
+//         // Deactivate user subscription
+//         await User.findByIdAndUpdate(
+//           userId,
+//           {
+//             isSubscribe: false,
+//             subscriptionId: null, // Optionally clear the subscription reference
+//           },
+//           { new: true }
+//         );
+
+//         console.log("Subscription deactivated after 2 minutes:", statusUpdatedSubscription);
+//       }, 2 * 60 * 1000); // 2 minutes in milliseconds
 
 //       // Respond to acknowledge receipt of the event
 //       res.status(200).json({ received: true, eventType });
@@ -186,7 +222,7 @@ const createPlanPayment = catchAsync(async (req, res) => {
 //   }
 // };
 
- 
+
 const stripeWebhook = async (req, res) => {
   console.log("Webhook endpoint hit!");
 
@@ -226,31 +262,34 @@ const stripeWebhook = async (req, res) => {
       }
 
       // Check if the userId is valid
-      const mongoose = require("mongoose");
       if (!mongoose.Types.ObjectId.isValid(userId)) {
         console.error("Invalid userId in metadata:", userId);
         return res.status(400).json({ error: "Invalid userId" });
       }
-
-      // Calculate expiration date (2 minutes from now)
+            // Calculate expiration date (2 minutes from now)
       const expirationDate = new Date();
       expirationDate.setMinutes(expirationDate.getMinutes() + 2); // Add 2 minutes
+
+      // // Calculate expiration date (1 month from now)
+      // const expirationDate = new Date();
+      // expirationDate.setMonth(expirationDate.getMonth() + 1); // Add 1 month
 
       // Create subscription record
       const updatedSubscription = await PlanSubscription.findOneAndUpdate(
         { stripeSessionId: session.id }, // Find the plan subscription by the session ID
         {
-         userId,
-        planName,
-        price: session.amount_total / 100, // Assuming amount is in cents
-        duration,
-        status: "active",
-        stripeSessionId: session.id,
-        transactionId: session.payment_intent,
-        expirationDate,
+          userId,
+          planName,
+          price: session.amount_total / 100, // Assuming amount is in cents
+          duration,
+          status: "active",
+          stripeSessionId: session.id,
+          transactionId: session.payment_intent,
+          expirationDate, // Add expiration date
         },
-        { new: true } // Return the updated record
+        { new: true, upsert: true } // Return the updated or newly created record
       );
+
       if (!updatedSubscription) {
         console.error("Failed to create or update subscription for session ID:", session.id);
         return res.status(500).json({ error: "Failed to create or update subscription" });
@@ -277,30 +316,6 @@ const stripeWebhook = async (req, res) => {
         console.log("User subscription status updated:", updatedUser);
       }
 
-      // Set a timeout to deactivate subscription after 2 minutes
-      setTimeout(async () => {
-        // Deactivate subscription
-        const statusUpdatedSubscription = await PlanSubscription.findByIdAndUpdate(
-          updatedSubscription._id,
-          {
-            status: "inactive",
-          },
-          { new: true }
-        );
-
-        // Deactivate user subscription
-        await User.findByIdAndUpdate(
-          userId,
-          {
-            isSubscribe: false,
-            subscriptionId: null, // Optionally clear the subscription reference
-          },
-          { new: true }
-        );
-
-        console.log("Subscription deactivated after 2 minutes:", statusUpdatedSubscription);
-      }, 2 * 60 * 1000); // 2 minutes in milliseconds
-
       // Respond to acknowledge receipt of the event
       res.status(200).json({ received: true, eventType });
     }
@@ -319,22 +334,50 @@ const stripeWebhook = async (req, res) => {
   }
 };
 
+// Periodic task to deactivate subscriptions based on expiration date
+// cron.schedule('0 0 1 * *', async () => { // Runs on the 1st day of every month at midnight
+  cron.schedule('* * * * *', async () => { // Runs every minute
+  console.log('Checking for expired subscriptions...');
+
+  const expiredSubscriptions = await PlanSubscription.find({
+    status: 'active',
+    expirationDate: { $lt: new Date() }, // Find subscriptions that are past expiration date
+  });
+
+  for (let subscription of expiredSubscriptions) {
+    // Deactivate subscription
+    await PlanSubscription.findByIdAndUpdate(subscription._id, {
+      status: 'inactive',
+    });
+
+    // Deactivate user subscription
+    await User.findByIdAndUpdate(subscription.userId, {
+      isSubscribe: false,
+      
+    });
+
+    console.log(`Subscription deactivated after expiration for user ${subscription.userId}`);
+  }
+});
 
  
 
 
-const getMySubscription = catchAsync(async (req, res) => {
+const getMySubscriptions = catchAsync(async (req, res) => {
   const userId = req?.user?.id; // Get user ID from authenticated request
+  console.log(userId, "User ID from request");
 
   // Validate user ID
   if (!userId) {
     return res.status(400).json({ message: "User ID is required." });
-  } 
-  // Fetch the user's subscription details
-  const subscription = await PlanSubscription.findOne({ userId });
+  }
 
-  if (!subscription) { 
-    throw new ApiError(httpStatus.NOT_FOUND, "No active subscription found");
+  // Fetch all subscriptions for the user
+  const subscriptions = await PlanSubscription.find({ userId });
+
+  // If no subscriptions are found
+  if (!subscriptions || subscriptions.length === 0) {
+    throw new ApiError(httpStatus.NOT_FOUND, "No subscriptions found for this user");
   }
 
   res.status(httpStatus.OK).json(
@@ -342,11 +385,12 @@ const getMySubscription = catchAsync(async (req, res) => {
       message: '',
       status: 'OK',
       statusCode: httpStatus.OK,
-      data: subscription,
+      data: subscriptions, // Return the list of subscriptions
     })
   );
-
 });
+
+
 
 
 const getSubscriptionById = catchAsync(async (req, res) => {
@@ -411,6 +455,6 @@ module.exports = {
   createPlanPayment,
   stripeWebhook ,
   getAllSubscriptions,
-  getMySubscription,
+  getMySubscriptions,
   getSubscriptionById
 };
