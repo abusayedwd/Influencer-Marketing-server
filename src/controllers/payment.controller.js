@@ -83,7 +83,7 @@ line_items: items.map((item) => ({
     statusCode: httpStatus.CREATED,
     message: "Plan payment session created successfully.",
     sessionId: session.id,
-    url: session.url, // Frontend will use this URL to redirect to Stripe
+    url: session.url, 
     data : newPlanSubscription,
   })
  
