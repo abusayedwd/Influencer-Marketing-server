@@ -334,6 +334,8 @@ const stripeWebhook = async (req, res) => {
   }
 };
 
+
+
 // Periodic task to deactivate subscriptions based on expiration date
 // cron.schedule('0 0 1 * *', async () => { // Runs on the 1st day of every month at midnight
   cron.schedule('* * * * *', async () => { // Runs every minute
