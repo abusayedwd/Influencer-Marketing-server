@@ -251,6 +251,7 @@ const submitDraft = async (campaignId, influencerId, draftContent, image, social
 
 const approveDraftAndAddBudget = async (campaignId, draftId) => {
   try {
+    // Find the campaign by ID
     const campaign = await Campaign.findById(campaignId);
 
     if (!campaign) {
@@ -264,56 +265,33 @@ const approveDraftAndAddBudget = async (campaignId, draftId) => {
       throw new Error('Draft not found');
     }
 
-    // Approve the draft
+    // Check if the draft is already approved
+    if (draft.isApproved) {
+      throw new Error('Draft already approved');  // If true, throw error with message
+    }
+
+    // Approve the draft if it was not approved yet
     draft.isApproved = true;
 
-    // Get the budget from the campaign or set a fixed budget
-    const budget = campaign.budget;  // Example: a fixed budget per influencer in the campaign
-
-    // Add the budget to the influencer's wallet
+    // (Optional) Add the budget to the influencer's wallet, assuming this part is included as before
+    const budget = campaign.budgetPerInfluencer;  // Example of a fixed budget for each influencer
     const influencer = await User.findById(draft.influencerId);
 
     if (!influencer) {
       throw new Error('Influencer not found');
     }
 
-    // Find the influencer's wallet or create one if it doesn't exist
-    let wallet = await Wallet.findOne({ influencerId: draft.influencerId });
+    influencer.walletBalance += budget;
 
-    if (!wallet) {
-      wallet = new Wallet({ influencerId: draft.influencerId });
-    }
-
-    // Add the budget to the wallet balance
-    wallet.balance += budget;
-
-    // Record the transaction in the wallet
-    wallet.transactions.push({
-      amount: budget,
-      type: 'deposit',
-      description: 'Budget added after draft approval'
-    });
-
-    // Save the wallet
-    await wallet.save();
-
-    // Create a record in the DraftApprove model
-    const draftApproval = new DraftApprove({
-      campaignId,
-      draftId,
-      influencerId: draft.influencerId,
-      budget,
-      isApproved: true
-    });
-
-    await draftApproval.save();
+    await influencer.save();
 
     // Save the campaign with the approved draft
     await campaign.save();
 
     return campaign;
+
   } catch (error) {
-    throw new Error('Error approving draft and adding budget');
+    throw new Error('Error approving draft: ' + error.message);
   }
 };
 
