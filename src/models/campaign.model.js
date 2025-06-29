@@ -124,10 +124,27 @@ const campaignSchema = new mongoose.Schema({
       ref: "User" 
     },
     draftContent: String,
+     image: {
+      type: Object,
+      required: [true, "Image is required"],
+      default: { url: ``, path: "null" },
+    },  
+     socialPlatform: [{
+      name: String,    // Name of the social platform (e.g., Facebook, Instagram)
+      link: String     // The link or URL for the platform (e.g., https://instagram.com/xyz)
+    }],
     createdAt: { 
       type: Date, 
       default: Date.now 
     },
+     isApproved: {     // New field to track approval status
+      type: Boolean,
+      default: false
+    },
+     budget: {         // Budget added to influencer's wallet when draft is approved
+      type: Number,
+      default: 0
+    }
   }],
 });
 

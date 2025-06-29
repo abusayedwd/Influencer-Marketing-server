@@ -25,7 +25,19 @@ router.get('/getAllCampaigns',auth('common'), campaignController.getAllCampaigns
 
 router.get('/getMy-Campaigns',auth('common'), campaignController.getMyCampaigns);
 
-router.get('/:campaignId',auth('common'), campaignController.getCampaignDetails);
+router.post('/interested/:campaignId',auth('influencer'), campaignController.showInterest);
+
+router.post('/acceptInfluencer/:campaignId',auth('brand'), campaignController.acceptInfluencer);
+router.post('/denyInfluencer/:campaignId',auth('brand'), campaignController.denyInfluencer);
+
+router.post('/submitDraft/:campaignId',auth('influencer'),
+     [uploadUsers.single("image")],
+     convertHeicToPngMiddleware(UPLOADS_FOLDER_USERS),
+    campaignController.submitDraft);
+
+router.post('/approveDraft',auth('brand'), campaignController.approveDraft); 
+
+router.get('/:campaignId',auth('common'), campaignController.getCampaignDetails); 
  
 
 // router

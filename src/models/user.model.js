@@ -59,6 +59,10 @@ const userSchema = mongoose.Schema(
       enum: roles,
       required: true,
     },
+      walletBalance: {
+    type: Number,
+    default: 0,
+  },
     rand: {
       type: Number,
       default: 0,

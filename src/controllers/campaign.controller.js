@@ -185,7 +185,7 @@ const getMyCampaigns = catchAsync(async (req, res) => {
 const showInterest = async (req, res) => {
   try {
     const { campaignId } = req.params;
-    const { influencerId } = req.body;
+    const  influencerId  = req.user.id;
     const campaign = await campaignService.showInterest(campaignId, influencerId);
     res.status(200).json({ message: "Interest shown successfully", campaign });
   } catch (error) {
@@ -205,24 +205,80 @@ const acceptInfluencer = async (req, res) => {
   }
 };
 
-// Influencer submits a draft
-const submitDraft = async (req, res) => {
+const denyInfluencer = async (req, res) => {
   try {
     const { campaignId } = req.params;
-    const { influencerId, draftContent } = req.body;
-    const campaign = await campaignService.submitDraft(campaignId, influencerId, draftContent);
-    res.status(200).json({ message: "Draft submitted successfully", campaign });
+    const { influencerId } = req.body;
+
+    const campaign = await campaignService.denyInfluencer(campaignId, influencerId);
+
+    res.status(200).json({ message: "Influencer denied", campaign });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+ 
+
+const submitDraft = async (req, res) => {
+  try {
+    const { campaignId } = req.params;
+    const influencerId = req?.user?.id
+    const { draftContent, socialPlatform } = req.body;
+
+    // Ensure the file was uploaded
+     const image = {};
+  if (req.file) {
+    image.url = "/uploads/users/" + req.file.filename;
+    image.path = req.file.path;
+  }
+  if (req.file) {
+    req.body.image = image;
+  }
+    // Ensure file is uploaded
+    if (!image) {
+      return res.status(400).json({ message: 'Image file is required' });
+    }
+ 
+    // const platforms = socialPlatform ? socialPlatform.split(',') : []; // If multiple platforms are sent, split them
+   const platforms = JSON.parse(socialPlatform);
+
+    const campaign = await campaignService.submitDraft(
+      campaignId,
+      influencerId,
+      draftContent,
+      image,
+      platforms
+    );
+
+    res.status(200).json({ message: 'Draft submitted successfully', campaign });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+const approveDraft = async (req, res) => {
+  try {
+    const { campaignId, draftId } = req.body; // Accept campaignId and draftId as params
+    // Accept the budget value from the request (for the influencer)
+
+    const campaign = await campaignService.approveDraftAndAddBudget(campaignId, draftId);
+
+    res.status(200).json({ message: "Draft approved and budget added to wallet", campaign });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 
 module.exports = {
   createCampaign,
   getCampaignDetails,
   showInterest,
   acceptInfluencer,
+  denyInfluencer,
   submitDraft,
+  approveDraft,
   getAllCampaigns,
   getMyCampaigns
 };

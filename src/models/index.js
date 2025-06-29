@@ -3,4 +3,6 @@ module.exports.User = require('./user.model');
 module.exports.Service = require('./service.model')
 module.exports.Tasks = require('./tasks.model')
 module.exports.Campaign = require('./campaign.model')
+module.exports.Withdrawal = require('./withdrawal.model')
+module.exports.Wallet = require('./wallet.model')
  
