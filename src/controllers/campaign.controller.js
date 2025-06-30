@@ -77,49 +77,204 @@ const catchAsync = require("../utils/catchAsync");
 const response = require("../config/response");
 const ApiError = require("../utils/ApiError");
 const pick = require("../utils/pick");
+const { Campaign } = require("../models");
+ 
+const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
+const endpointSecret = process.env.CREATE_CAMPAIGN_WEBHOOK_SECRET;
 
-// Create a new campaign
 const createCampaign = catchAsync(async (req, res) => {
-   const brandId = req.user.id;
-    const { budget,  campaignName, description, endDate, influencerCount, selectedPlatforms, startDate, totalAmount } = req.body;
-    // const image = req.file;  // Multer will automatically store the uploaded file info in `req.file`
-   
-    const image = {};
-  if (req.file) {
-    image.url = "/uploads/users/" + req.file.filename;
-    image.path = req.file.path;
-  }
-  if (req.file) {
-    req.body.image = image;
-  }
-    // Ensure file is uploaded
-    if (!image) {
-      return res.status(400).json({ message: 'Image file is required' });
+  const { budget, campaignName,image, description, endDate, influencerCount, selectedPlatforms, startDate, totalAmount } = req.body; // Include imageUrl
+  const brandId = req.user.id;
+  // console.log("ressss>>>>>>>>>>:", req.body)
+  
+  const imageUrl = "/uploads/users/" + image;
+
+  //     const imageUrl = {};
+  // if (req.file) {
+  //   image.url = "/uploads/users/" + req.file.filename;
+  //   image.path = req.file.path;
+  // }
+  // if (req.file) {
+  //   req.body.image = image;
+  // }
+  //   // Ensure file is uploaded
+  //   if (!image) {
+  //     return res.status(400).json({ message: 'Image file is required' });
+  //   }
+
+
+  const items = [
+    {
+      name: campaignName,
+      quantity: 1,
+    },
+  ];
+
+  // Convert totalAmount to cents
+  const amount = Math.round(totalAmount * 100); // Stripe expects price in cents
+
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ["card"],
+    line_items: items.map((item) => ({
+      price_data: {
+        currency: "eur",
+        product_data: {
+          name: item.name,
+        },
+        unit_amount: amount,
+      },
+      quantity: item.quantity,
+    })),
+    mode: "payment",
+    success_url: `https://your-website.com/campaign-success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `https://your-website.com/campaign-cancelled`,
+    customer_email: req?.user?.email,
+    metadata: {
+      brandId,
+      budget,
+      campaignName,
+      totalAmount: amount.toString(),
+      project: "your-project-name",
+      startDate,
+      endDate,
+      image: imageUrl,  // Pass image URL in metadata
+      description, // Pass description in metadata
+      influencerCount,
+      selectedPlatforms,
+    },
+  });
+
+  res.status(httpStatus.CREATED).json({
+    status: "success",
+    sessionId: session.id,
+    url: session.url, // Send this URL for payment
+  });
+});
+
+
+const stripeCampaignWebhook = async (req, res) => {
+  console.log("Webhook endpoint hit!");
+
+  const sig = req.headers["stripe-signature"];
+  let event;
+
+  try {
+    if (!endpointSecret) {
+      console.error("Stripe webhook secret not configured.");
+      return res.status(400).json({ error: "Webhook secret not configured" });
     }
 
-    // Create campaign object
-    const campaignData = {
-      budget,
-      brandId,
-      campaignName,
-      description,
-      endDate,
-      influencerCount,
-      selectedPlatforms: selectedPlatforms.split(','),
-      startDate,
-      totalAmount,
-      image 
-    };
+    event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
+    console.log("Webhook verified.");
 
-    const campaign = await campaignService.createCampaign(campaignData);
-    res.status(httpStatus.CREATED).json(
-      { status: "success",
-        message: 'Campaign created successfully',
-        statusCode: httpStatus.CREATED,
-        campaign 
-       });
+    const data = event.data.object;
+    const eventType = event.type;
+
+    console.log(`Received event type: ${eventType}`);
+
+    if (eventType === "checkout.session.completed") {
+      const session = data;
+      console.log("Payment successfully completed. Session details:", session);
+
+      // Check if the event is for the correct project
+      if (session.metadata && session.metadata.project !== "your-project-name") {
+        console.log("Event not for this project, ignoring...");
+        return res.status(200).json({ received: true, ignored: true });
+      }
+
+      const { brandId, campaignName, totalAmount, startDate, endDate, image, description, influencerCount, selectedPlatforms } = session?.metadata;
+ 
+      // Create the campaign after payment
+      const campaignData = {
+        budget: totalAmount / 100, // Convert back to original amount (in EUR, USD, etc.)
+        brandId,
+        campaignName,
+        description,
+        endDate,
+        influencerCount,
+        selectedPlatforms: selectedPlatforms.split(','), // Convert comma-separated string to an array
+        startDate,
+        totalAmount,
+        status: "upComming", // Initially upcoming before the startDate
+        image,  // Use the image URL from metadata
+      };
+
+      // Create the campaign in the database
+      const campaign = await campaignService.createCampaign(campaignData);
+
+      // Determine the status based on start and end dates
+      const currentDate = new Date();
+      if (currentDate >= new Date(startDate) && currentDate <= new Date(endDate)) {
+        campaign.status = "active"; // Mark as active when the start date is reached
+      } else if (currentDate > new Date(endDate)) {
+        campaign.status = "completed"; // Mark as completed when the end date is passed
+      }
+
+      // Save the campaign to the database
+      await campaign.save();
+
+      console.log("Campaign created successfully:", campaign);
+
+      // Respond to acknowledge receipt of the event
+      res.status(200).json({ received: true, eventType });
+    } else {
+      res.status(200).json({ received: true, ignored: true });
+    }
+  } catch (error) {
+    console.error("Error processing webhook event:", error);
+    res.status(200).json({ error: "Internal server error", received: true });
+  }
+};
+
+ 
+
+
+
+
+
+
+// const createCampaign = catchAsync(async (req, res) => {
+//    const brandId = req.user.id;
+//     const { budget,  campaignName, description, endDate, influencerCount, selectedPlatforms, startDate, totalAmount } = req.body;
+//     // const image = req.file;  // Multer will automatically store the uploaded file info in `req.file`
+   
+  //   const image = {};
+  // if (req.file) {
+  //   image.url = "/uploads/users/" + req.file.filename;
+  //   image.path = req.file.path;
+  // }
+  // if (req.file) {
+  //   req.body.image = image;
+  // }
+  //   // Ensure file is uploaded
+  //   if (!image) {
+  //     return res.status(400).json({ message: 'Image file is required' });
+  //   }
+
+//     // Create campaign object
+//     const campaignData = {
+//       budget,
+//       brandId,
+//       campaignName,
+//       description,
+//       endDate,
+//       influencerCount,
+//       selectedPlatforms: selectedPlatforms.split(','),
+//       startDate,
+//       totalAmount,
+//       image 
+//     };
+
+//     const campaign = await campaignService.createCampaign(campaignData);
+//     res.status(httpStatus.CREATED).json(
+//       { status: "success",
+//         message: 'Campaign created successfully',
+//         statusCode: httpStatus.CREATED,
+//         campaign 
+//        });
   
-});
+// });
+  
 
 const getAllCampaigns = catchAsync(async (req, res) => {
 
@@ -167,7 +322,7 @@ const getMyCampaigns = catchAsync(async (req, res) => {
  
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
 
-    const  brandId  = req.user?.id;
+    const brandId  = req.user?.id;
     const mycampaign = await campaignService.getMyCampaigns(brandId, filter, options);
     res.status(httpStatus.OK)
     .json(
@@ -257,18 +412,16 @@ const submitDraft = async (req, res) => {
 };
 
 
-const approveDraft = async (req, res) => {
-  try {
+const approveDraft = catchAsync(async (req, res) => {
+ 
     const { campaignId, draftId } = req.body; // Accept campaignId and draftId as params
     // Accept the budget value from the request (for the influencer)
 
     const campaign = await campaignService.approveDraftAndAddBudget(campaignId, draftId);
 
     res.status(200).json({ message: "Draft approved and budget added to wallet", campaign });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+  
+});
 
 
 module.exports = {
@@ -280,5 +433,6 @@ module.exports = {
   submitDraft,
   approveDraft,
   getAllCampaigns,
-  getMyCampaigns
+  getMyCampaigns,
+  stripeCampaignWebhook
 };

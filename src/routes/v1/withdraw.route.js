@@ -26,6 +26,8 @@ router.post("/request-withdrawal/:influencerId", auth("influencer"), withdrawCon
 router.post("/Payment-approveWithdrawal/:requestId", auth("common"), withdrawController.approveWithdrawal)
 router.get("/getAllWithdrawalRequests", auth("common"), withdrawController.getAllWithdrawalRequests)
 
+router.get("/my-wallet", auth("influencer"), withdrawController.getWallet)
+
  
 
 module.exports = router;

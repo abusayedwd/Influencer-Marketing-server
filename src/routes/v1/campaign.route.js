@@ -9,6 +9,7 @@ const userValidation = require("../../validations/user.validation");
 const userFileUploadMiddleware = require("../../middlewares/fileUpload");
 const convertHeicToPngMiddleware = require("../../middlewares/converter");
 const { campaignController } = require("../../controllers");
+const bodyParser = require("body-parser");
 const UPLOADS_FOLDER_USERS = "./public/uploads/users";
 
 const uploadUsers = userFileUploadMiddleware(UPLOADS_FOLDER_USERS);
@@ -20,6 +21,10 @@ router.post("/createCampaign",auth('brand'),
      [uploadUsers.single("image")],
      convertHeicToPngMiddleware(UPLOADS_FOLDER_USERS),
      campaignController.createCampaign);
+
+// router.post('/webhook-createCampaign',auth('brand'), campaignController.stripeWebhook);   
+
+
 
 router.get('/getAllCampaigns',auth('common'), campaignController.getAllCampaigns);
 

@@ -2,13 +2,20 @@ const express = require('express');
 const router = express.Router();
 const bodyParser = require('body-parser');
 const auth = require('../../middlewares/auth');
-const { subscriptionController } = require('../../controllers');
+const { subscriptionController, campaignController } = require('../../controllers');
 
 // CRITICAL: Webhook route must be defined BEFORE any global JSON middleware
 router.post('/webhook-subscription',
   bodyParser.raw({ type: 'application/json' }),  // Ensure that raw body is passed to the webhook
   subscriptionController.stripeWebhook
 );
+
+router.post('/webhook-createCampaign',
+  bodyParser.raw({ type: 'application/json' }),  // Ensure that raw body is passed to the webhook
+  campaignController.stripeCampaignWebhook
+);
+
+
 router.get("/getAllSubscriptions", auth("common"),subscriptionController.getAllSubscriptions);
 
 router.get('/getSubscription/:id', auth('common'), subscriptionController.getSubscriptionById);

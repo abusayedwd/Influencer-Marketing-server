@@ -60,8 +60,8 @@ const userSchema = mongoose.Schema(
       required: true,
     },
       walletBalance: {
-    type: Number,
-    default: 0,
+      type: Number,
+      default: 0,
   },
     rand: {
       type: Number,

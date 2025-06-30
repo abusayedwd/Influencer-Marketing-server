@@ -3,6 +3,8 @@ const response = require('../config/response');
 const {withdrawalService} = require('../services'); // Adjust path as needed
 const catchAsync = require('../utils/catchAsync');
 const pick = require('../utils/pick');
+const { Wallet } = require('../models');
+const ApiError = require('../utils/ApiError');
 
 // Request Withdrawal (Influencer)
 const requestWithdrawal = async (req, res) => {
@@ -86,9 +88,34 @@ const getWithdrawById = async (req, res) => {
   }
 };
 
+
+const getWallet = catchAsync(async (req, res)=> {
+
+  const influencerId = req.user.id;
+
+  const wallet = await Wallet.findOne({influencerId: influencerId})
+  if(!wallet){
+    throw new ApiError(httpStatus.NOT_FOUND, "Wallet not found")
+  }
+
+  res.status(httpStatus.OK)
+    .json(
+      response({
+        message: "Wallet get successfully",
+        status: "OK",
+        statusCode: httpStatus.OK,
+        data: wallet,
+      })
+    );
+
+}
+
+)
+
 module.exports = { 
     requestWithdrawal, 
     approveWithdrawal, 
     getAllWithdrawalRequests ,
-    getWithdrawById
+    getWithdrawById,
+    getWallet
 };
