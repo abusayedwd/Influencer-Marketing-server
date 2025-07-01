@@ -24,7 +24,7 @@ router.post("/createCampaign",auth('brand'),
 
 // router.post('/webhook-createCampaign',auth('brand'), campaignController.stripeWebhook);   
 
-
+router.put('/updateCampaign/:campaignId',auth('brand'), campaignController.updateCampaign);
 
 router.get('/getAllCampaigns',auth('common'), campaignController.getAllCampaigns);
 

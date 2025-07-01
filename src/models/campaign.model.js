@@ -106,9 +106,9 @@ const campaignSchema = new mongoose.Schema({
     required: true
   },
  image: {
-      type: String,
+      type: Object,
       required: true,
-      // default: { url: `/uploads/users/camp-1751092586149.jpg`, path: "null" },
+      default: { url: `/uploads/users/camp-1751092586149.jpg`, path: "null" },
     },
   interestedInfluencers: [{
     type: mongoose.Schema.Types.ObjectId,

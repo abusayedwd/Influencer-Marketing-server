@@ -97,7 +97,7 @@ const approveWithdrawal = async (requestId) => {
 };
 
 // Get All Withdrawal Requests (for Admin)
-const getAllWithdrawalRequests = async (filter, options) => {
+const getAllWithdrawalRequests = async (filter,options) => {
   // Initialize an empty query object
   const query = {}; 
 

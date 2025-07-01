@@ -55,6 +55,22 @@ const createCampaign = async (data) => {
   }
 };
 
+const updateCampaign = async (campaignId, updatedData) => {
+  try {
+    const updatedCampaign = await Campaign.findByIdAndUpdate(
+      campaignId,
+      { $set: updatedData },
+      { new: true }  
+    );
+    return updatedCampaign;
+  } catch (error) {
+    throw new Error('Error updating campaign: ' + error.message);
+  }
+};
+
+
+
+
  const getAllCampaigns =  async(filter, option) => {
    const query = {};
 
@@ -410,13 +426,13 @@ const approveDraftAndAddBudget = async (campaignId, draftId) => {
 
 module.exports = {
   createCampaign,
+  updateCampaign,
   getCampaignDetails,
   showInterest,
   acceptInfluencer,
   denyInfluencer,
   submitDraft,
-  approveDraftAndAddBudget,
- 
+  approveDraftAndAddBudget, 
   getAllCampaigns,
   getMyCampaigns
 };

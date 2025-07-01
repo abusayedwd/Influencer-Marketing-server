@@ -78,29 +78,30 @@ const response = require("../config/response");
 const ApiError = require("../utils/ApiError");
 const pick = require("../utils/pick");
 const { Campaign } = require("../models");
+const transactionController = require("./transaction.controller")
  
 const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
 const endpointSecret = process.env.CREATE_CAMPAIGN_WEBHOOK_SECRET;
 
 const createCampaign = catchAsync(async (req, res) => {
-  const { budget, campaignName,image, description, endDate, influencerCount, selectedPlatforms, startDate, totalAmount } = req.body; // Include imageUrl
+  const { budget, campaignName, description, endDate, influencerCount, selectedPlatforms, startDate, totalAmount } = req.body; // Include imageUrl
   const brandId = req.user.id;
-  // console.log("ressss>>>>>>>>>>:", req.body)
+ 
   
-  const imageUrl = "/uploads/users/" + image;
+  // const imageUrl = "/uploads/users/" + image;
 
-  //     const imageUrl = {};
-  // if (req.file) {
-  //   image.url = "/uploads/users/" + req.file.filename;
-  //   image.path = req.file.path;
-  // }
-  // if (req.file) {
-  //   req.body.image = image;
-  // }
-  //   // Ensure file is uploaded
-  //   if (!image) {
-  //     return res.status(400).json({ message: 'Image file is required' });
-  //   }
+      const image = {};
+  if (req.file) {
+    image.url = "/uploads/users/" + req.file.filename;
+    image.path = req.file.path;
+  }
+  if (req.file) {
+    req.body.image = image;
+  }
+    // Ensure file is uploaded
+    if (!image) {
+      return res.status(400).json({ message: 'Image file is required' });
+    }
 
 
   const items = [
@@ -121,6 +122,7 @@ const createCampaign = catchAsync(async (req, res) => {
         product_data: {
           name: item.name,
         },
+     
         unit_amount: amount,
       },
       quantity: item.quantity,
@@ -133,14 +135,14 @@ const createCampaign = catchAsync(async (req, res) => {
       brandId,
       budget,
       campaignName,
-      totalAmount: amount.toString(),
+      totalAmount,
       project: "your-project-name",
       startDate,
       endDate,
-      image: imageUrl,  // Pass image URL in metadata
       description, // Pass description in metadata
       influencerCount,
       selectedPlatforms,
+      image:image.url,
     },
   });
 
@@ -182,11 +184,11 @@ const stripeCampaignWebhook = async (req, res) => {
         return res.status(200).json({ received: true, ignored: true });
       }
 
-      const { brandId, campaignName, totalAmount, startDate, endDate, image, description, influencerCount, selectedPlatforms } = session?.metadata;
+      const { brandId, budget, campaignName, totalAmount, startDate, endDate, image, description, influencerCount, selectedPlatforms } = session?.metadata;
  
       // Create the campaign after payment
       const campaignData = {
-        budget: totalAmount / 100, // Convert back to original amount (in EUR, USD, etc.)
+        budget, // Convert back to original amount (in EUR, USD, etc.)
         brandId,
         campaignName,
         description,
@@ -209,11 +211,15 @@ const stripeCampaignWebhook = async (req, res) => {
       } else if (currentDate > new Date(endDate)) {
         campaign.status = "completed"; // Mark as completed when the end date is passed
       }
-
+  
       // Save the campaign to the database
       await campaign.save();
 
-      console.log("Campaign created successfully:", campaign);
+    
+
+     await transactionController.createTransactionForCampaign(campaign, "Stripe", session);
+
+      console.log("Campaign and transaction created successfully:", campaign);
 
       // Respond to acknowledge receipt of the event
       res.status(200).json({ received: true, eventType });
@@ -227,7 +233,40 @@ const stripeCampaignWebhook = async (req, res) => {
 };
 
  
+// Controller to update campaign
+const updateCampaign = catchAsync(async (req, res) => {
+  const { campaignId } = req.params; // Extract campaignId from URL parameter
 
+  const { budget, campaignName,image, description, endDate, influencerCount, selectedPlatforms, startDate, totalAmount } = req.body;
+ 
+  const imageUrl = "/uploads/users/" + image;
+
+   const updatedData = {
+       budget, 
+       campaignName,
+       image: imageUrl,
+       description, 
+       endDate, 
+       influencerCount, 
+       selectedPlatforms, 
+       startDate, 
+       totalAmount
+   }
+
+
+ 
+    // Call the service to update the campaign
+    const updatedCampaign = await campaignService.updateCampaign(campaignId, updatedData);
+
+    // Return the updated campaign in response
+    return res.status(200).json({
+      success: true,
+      message: 'Campaign updated successfully',
+      data: updatedCampaign,
+    });
+ 
+ 
+});
 
 
 
@@ -426,6 +465,7 @@ const approveDraft = catchAsync(async (req, res) => {
 
 module.exports = {
   createCampaign,
+  updateCampaign,
   getCampaignDetails,
   showInterest,
   acceptInfluencer,
