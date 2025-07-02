@@ -85,6 +85,10 @@ const campaignSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+    startDate: {
+    type: String,
+    required: true
+  },
   endDate: {
     type: String,
     required: true
@@ -97,18 +101,15 @@ const campaignSchema = new mongoose.Schema({
     type: [String],
     required: true
   },
-  startDate: {
-    type: String,
-    required: true
-  }, 
+ 
   totalAmount: {
     type: Number,
     required: true
   },
  image: {
-      type: Object,
+      type: String,
       required: true,
-      default: { url: `/uploads/users/camp-1751092586149.jpg`, path: "null" },
+      // default: { url: `/uploads/users/camp-1751092586149.jpg`, path: "null" },
     },
   interestedInfluencers: [{
     type: mongoose.Schema.Types.ObjectId,

@@ -153,7 +153,6 @@ const createCampaign = catchAsync(async (req, res) => {
   });
 });
 
-
 const stripeCampaignWebhook = async (req, res) => {
   console.log("Webhook endpoint hit!");
 
@@ -185,39 +184,45 @@ const stripeCampaignWebhook = async (req, res) => {
       }
 
       const { brandId, budget, campaignName, totalAmount, startDate, endDate, image, description, influencerCount, selectedPlatforms } = session?.metadata;
- 
-      // Create the campaign after payment
+  
+      // Convert startDate and endDate from string to Date objects for proper comparison
+      const currentDate = new Date();
+      const parsedStartDate = new Date(startDate);  // Convert startDate string to Date object
+      const parsedEndDate = new Date(endDate);      // Convert endDate string to Date object
+
+      console.log("Parsed Start Date: ", parsedStartDate);
+      console.log("Parsed End Date: ", parsedEndDate);
+
+      // Determine the status based on start and end dates
+      let status = "upComing"; // Default status
+      if (currentDate >= parsedStartDate && currentDate <= parsedEndDate) {
+        status = "active";
+      } else if (currentDate > parsedEndDate) {
+        status = "completed";
+      }
+
+      // Create the campaign in the database with the correct status
       const campaignData = {
         budget, // Convert back to original amount (in EUR, USD, etc.)
         brandId,
         campaignName,
         description,
-        endDate,
+        endDate: parsedEndDate,
         influencerCount,
-        selectedPlatforms: selectedPlatforms.split(','), // Convert comma-separated string to an array
-        startDate,
-        totalAmount,
-        status: "upComming", // Initially upcoming before the startDate
+        selectedPlatforms,
+        startDate: parsedStartDate,
+        totalAmount, 
         image,  // Use the image URL from metadata
+        status, // Set the correct status here
       };
 
-      // Create the campaign in the database
+      // Create and save the campaign to the database
       const campaign = await campaignService.createCampaign(campaignData);
 
-      // Determine the status based on start and end dates
-      const currentDate = new Date();
-      if (currentDate >= new Date(startDate) && currentDate <= new Date(endDate)) {
-        campaign.status = "active"; // Mark as active when the start date is reached
-      } else if (currentDate > new Date(endDate)) {
-        campaign.status = "completed"; // Mark as completed when the end date is passed
-      }
-  
-      // Save the campaign to the database
+      // Ensure campaign status is updated before saving
       await campaign.save();
 
-    
-
-     await transactionController.createTransactionForCampaign(campaign, "Stripe", session);
+      await transactionController.createTransactionForCampaign(campaign, "Stripe", session);
 
       console.log("Campaign and transaction created successfully:", campaign);
 
@@ -232,19 +237,130 @@ const stripeCampaignWebhook = async (req, res) => {
   }
 };
 
+
+
+
+
+
+
+
+
+
+
+
+// const stripeCampaignWebhook = async (req, res) => {
+//   console.log("Webhook endpoint hit!");
+
+//   const sig = req.headers["stripe-signature"];
+//   let event;
+
+//   try {
+//     if (!endpointSecret) {
+//       console.error("Stripe webhook secret not configured.");
+//       return res.status(400).json({ error: "Webhook secret not configured" });
+//     }
+
+//     event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
+//     console.log("Webhook verified.");
+
+//     const data = event.data.object;
+//     const eventType = event.type;
+
+//     console.log(`Received event type: ${eventType}`);
+
+//     if (eventType === "checkout.session.completed") {
+//       const session = data;
+//       console.log("Payment successfully completed. Session details:", session);
+
+//       // Check if the event is for the correct project
+//       if (session.metadata && session.metadata.project !== "your-project-name") {
+//         console.log("Event not for this project, ignoring...");
+//         return res.status(200).json({ received: true, ignored: true });
+//       }
+
+//       const { brandId, budget, campaignName, totalAmount, startDate, endDate, image, description, influencerCount, selectedPlatforms } = session?.metadata;
+  
+// // Create the campaign in the database with the correct status
+// const campaignData = {
+//   budget, // Convert back to original amount (in EUR, USD, etc.)
+//   brandId,
+//   campaignName,
+//   description,
+//   endDate,
+//   influencerCount,
+//   selectedPlatforms, // Convert comma-separated string to an array
+//   startDate,
+//   totalAmount, 
+//   image,  // Use the image URL from metadata
+// };
+
+// // Create and save the campaign to the database
+// const campaign = await campaignService.createCampaign(campaignData);
+
+// // Ensure campaign status is updated before saving
+// await campaign.save();
+
+
+    
+
+//      await transactionController.createTransactionForCampaign(campaign, "Stripe", session);
+
+//       console.log("Campaign and transaction created successfully:", campaign);
+
+//       // Respond to acknowledge receipt of the event
+//       res.status(200).json({ received: true, eventType });
+//     } else {
+//       res.status(200).json({ received: true, ignored: true });
+//     }
+//   } catch (error) {
+//     console.error("Error processing webhook event:", error);
+//     res.status(200).json({ error: "Internal server error", received: true });
+//   }
+// };
+
  
 // Controller to update campaign
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const updateCampaign = catchAsync(async (req, res) => {
   const { campaignId } = req.params; // Extract campaignId from URL parameter
 
-  const { budget, campaignName,image, description, endDate, influencerCount, selectedPlatforms, startDate, totalAmount } = req.body;
+  const { budget, campaignName,description, endDate, influencerCount, selectedPlatforms, startDate, totalAmount } = req.body;
  
-  const imageUrl = "/uploads/users/" + image;
+      const image = {};
+  if (req.file) {
+    image.url = "/uploads/users/" + req.file.filename;
+    image.path = req.file.path;
+  }
+  if (req.file) {
+    req.body.image = image;
+  }
+    // Ensure file is uploaded
+    if (!image) {
+      return res.status(400).json({ message: 'Image file is required' });
+    }
+
+
+ 
 
    const updatedData = {
-       budget, 
+       budget,  
        campaignName,
-       image: imageUrl,
+       image:image.url,
        description, 
        endDate, 
        influencerCount, 

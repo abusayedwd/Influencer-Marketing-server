@@ -24,7 +24,10 @@ router.post("/createCampaign",auth('brand'),
 
 // router.post('/webhook-createCampaign',auth('brand'), campaignController.stripeWebhook);   
 
-router.put('/updateCampaign/:campaignId',auth('brand'), campaignController.updateCampaign);
+router.put('/updateCampaign/:campaignId',auth('brand'),
+ [uploadUsers.single("image")],
+ convertHeicToPngMiddleware(UPLOADS_FOLDER_USERS),
+campaignController.updateCampaign);
 
 router.get('/getAllCampaigns',auth('common'), campaignController.getAllCampaigns);
 

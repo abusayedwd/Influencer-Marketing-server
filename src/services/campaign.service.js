@@ -45,15 +45,56 @@ const Wallet = require('../models/wallet.model');
 const catchAsync = require('../utils/catchAsync');
 
 // Create a new campaign
+// const createCampaign = async (data) => {
+ 
+//   try { 
+//     const campaign = new Campaign(data);
+//     await campaign.save();
+//     return campaign;
+//   } catch (error) {
+//     throw new Error('Error creating campaign');
+//   }
+// };
+
 const createCampaign = async (data) => {
+  const currentDate = new Date(); // Current date in UTC
+  console.log("Current Date: ", currentDate);
+
+  // Convert startDate and endDate to UTC (no time component for easier comparison)
+  const startDate = new Date(data.startDate).toISOString();
+  const endDate = new Date(data.endDate).toISOString();
+
+  console.log("Start Date: ", startDate);
+  console.log("End Date: ", endDate);
+
+  // Determine the status based on start and end dates
+  if (currentDate < new Date(startDate)) {
+    data.status = "upComing"; 
+  } else if (currentDate >= new Date(startDate) && currentDate <= new Date(endDate)) {
+    data.status = "active"; 
+  } else if (currentDate > new Date(endDate)) {
+    data.status = "completed"; 
+  }
+
+  console.log("Assigned Status: ", data.status);
+
   try {
+    // Create a new campaign object with the updated status
     const campaign = new Campaign(data);
+
+    // Save the campaign to the database
     await campaign.save();
+
+    // Return the saved campaign object
     return campaign;
   } catch (error) {
+    console.error("Error creating campaign:", error);
     throw new Error('Error creating campaign');
   }
 };
+
+
+
 
 const updateCampaign = async (campaignId, updatedData) => {
   try {
