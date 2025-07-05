@@ -267,12 +267,12 @@ const stripeWebhook = async (req, res) => {
         return res.status(400).json({ error: "Invalid userId" });
       }
             // Calculate expiration date (2 minutes from now)
-      const expirationDate = new Date();
-      expirationDate.setMinutes(expirationDate.getMinutes() + 2); // Add 2 minutes
-
-      // // Calculate expiration date (1 month from now)
       // const expirationDate = new Date();
-      // expirationDate.setMonth(expirationDate.getMonth() + 1); // Add 1 month
+      // expirationDate.setMinutes(expirationDate.getMinutes() + 2); // Add 2 minutes
+
+      // Calculate expiration date (1 month from now)
+      const expirationDate = new Date();
+      expirationDate.setMonth(expirationDate.getMonth() + 1); // Add 1 month
 
       // Create subscription record
       const updatedSubscription = await PlanSubscription.findOneAndUpdate(
@@ -337,8 +337,8 @@ const stripeWebhook = async (req, res) => {
 
 
 // Periodic task to deactivate subscriptions based on expiration date
-// cron.schedule('0 0 1 * *', async () => { // Runs on the 1st day of every month at midnight
-  cron.schedule('* * * * *', async () => { // Runs every minute
+cron.schedule('0 0 1 * *', async () => { // Runs on the 1st day of every month at midnight
+  // cron.schedule('* * * * *', async () => { // Runs every minute
   console.log('Checking for expired subscriptions...');
 
   const expiredSubscriptions = await PlanSubscription.find({

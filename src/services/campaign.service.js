@@ -36,13 +36,14 @@
 
 
 
+const { default: mongoose } = require('mongoose');
 const {Campaign} = require('../models');
 const {User} = require('../models');
 const DraftApprove = require('../models/draft.model');
 const { populate } = require('../models/service.model');
 const Wallet = require('../models/wallet.model');
  
-const catchAsync = require('../utils/catchAsync');
+ 
 
 // Create a new campaign
 // const createCampaign = async (data) => {
@@ -69,18 +70,18 @@ const createCampaign = async (data) => {
 
   // Determine the status based on start and end dates
   if (currentDate < new Date(startDate)) {
-    data.status = "upComing"; 
+    data.status = "upComming"; 
   } else if (currentDate >= new Date(startDate) && currentDate <= new Date(endDate)) {
-    data.status = "active"; 
+    data.status = "active";  
   } else if (currentDate > new Date(endDate)) {
     data.status = "completed"; 
   }
 
-  console.log("Assigned Status: ", data.status);
-
+  // console.log("Assigned Status: ", data.status);
+     
   try {
     // Create a new campaign object with the updated status
-    const campaign = new Campaign(data);
+    const campaign = new Campaign(data); 
 
     // Save the campaign to the database
     await campaign.save();
@@ -162,6 +163,76 @@ const getMyCampaigns = async (brandId, filter, options) => {
 
 
 // Get campaign details along with interested and accepted influencers
+
+
+
+
+// const getMyCampaigns = async (brandId, filter, options) => {
+//   // Building the aggregation pipeline
+//   const pipeline = [
+//     {
+//       $match: { brandId: new mongoose.Types.ObjectId(brandId) }, // Filter by brandId
+//     },
+//     // Add additional filters to the match stage
+//     {
+//       $match: {
+//         $or: [
+//           { campaignName: { $regex: filter.campaignName || '', $options: 'i' } },
+//           { status: { $regex: filter.status || '', $options: 'i' } },
+//           { budget: filter.budget || { $gte: 0 } },
+//         ]
+//       }
+//     },
+//     {
+//       $lookup: {
+//         from: 'users', // Assuming 'users' collection stores influencer data
+//         localField: 'acceptedInfluencers',
+//         foreignField: '_id',
+//         as: 'acceptedInfluencersDetails'
+//       }
+//     },
+//     {
+//       $lookup: {
+//         from: 'users', // Assuming 'users' collection stores influencer data
+//         localField: 'interestedInfluencers',
+//         foreignField: '_id',
+//         as: 'interestedInfluencersDetails'
+//       }
+//     },
+//     {
+//       $project: {
+//         campaignName: 1,
+//         status: 1,
+//         budget: 1,
+//         description: 1,
+//         startDate: 1,
+//         endDate: 1,
+//         selectedPlatforms: 1,
+//         image: 1,
+//         totalAmount: 1,
+//         brandId: 1, 
+//         acceptedInfluencersDetails: { fullName: 1, email: 1, userName: 1, socialMedia: 1,image: 1},
+//         interestedInfluencersDetails: { fullName: 1, email: 1, userName: 1, socialMedia: 1, image: 1},
+        
+//       }
+//     },
+//     // Add pagination
+//     {
+//       $skip: options.page ? options.page * options.limit : 0, // Skip for pagination
+//     },
+//     {
+//       $limit: options.limit || 10, // Limit to the specified number of results
+//     },
+//   ];
+
+//   // Perform the aggregation
+//   const campaigns = await Campaign.aggregate(pipeline);
+
+//   return campaigns;
+// };
+
+
+
 const getCampaignDetails = async (campaignId) => {
   try {
     const campaign = await Campaign.findById(campaignId)
@@ -198,7 +269,9 @@ const showInterest = async (campaignId, influencerId) => {
 
     return campaign;
   } catch (error) {
-    throw new Error('Error showing interest');
+    throw new Error(error.message || ' showing interest in campaign');
+    // console.log( error.message)
+     
   }
 };
 
@@ -255,27 +328,111 @@ const denyInfluencer = async (campaignId, influencerId) => {
 };
 
 // Influencer submits a draft
-// const submitDraft = async (campaignId, influencerId, draftContent) => {
-//   try {
-//     const campaign = await Campaign.findById(campaignId);
+//  const getUpcomingCampaignsForInfluecer = async (filter,option) => {
+//     // Find campaigns where status is 'upComming'
+//     const campaigns = await Campaign.find({ status: 'upComming' });
+//        const query = {};
 
-//     if (!campaign) {
-//       throw new Error('Campaign not found');
+//   for (const key of Object.keys(filter)) {
+//     if (
+//       (key === "campaignName" || key === "status" || key === "budget") &&
+//       filter[key] !== ""
+//     ) {
+//       query[key] = { $regex: filter[key], $options: "i" }; // Case-insensitive regex search for name
+//     } else if (filter[key] !== "") {
+//       query[key] = filter[key];
 //     }
-
-//     if (!campaign.acceptedInfluencers.includes(influencerId)) {
-//       throw new Error('Influencer not accepted for this campaign');
-//     }
-
-//     // Add the draft submitted by the influencer
-//     campaign.drafts.push({ influencerId, draftContent });
-//     await campaign.save();
-
-//     return campaign;
-//   } catch (error) {
-//     throw new Error('Error submitting draft');
 //   }
+
+//    const campaigns = await Campaign.paginate(query, {
+//       ...option,
+//       populate: "brandId",
+//    }) ;
+//    return campaigns
+   
 // };
+
+const getUpcomingCampaignsForInfluecer = async (filter, option) => {
+  const query = { status: 'upComming' }; // Start with filtering 'upComming' status
+
+  // Apply additional filters dynamically
+  for (const key of Object.keys(filter)) {
+    if (
+      (key === "campaignName" || key === "status" || key === "budget") &&
+      filter[key] !== ""
+    ) {
+      // Case-insensitive regex search for the specified fields
+      query[key] = { $regex: filter[key], $options: "i" }; 
+    } else if (filter[key] !== "") {
+      // For other fields, just add them as exact matches
+      query[key] = filter[key];
+    }
+  }
+
+  // Apply pagination and populate the brandId field
+  const campaigns = await Campaign.paginate(query, {
+    ...option,
+    populate: "brandId",
+  });
+
+  return campaigns;
+};
+
+const getInterestedCampaignsForInfluencer = async (influencerId, filter, option) => {
+  const query = { 
+    interestedInfluencers: influencerId  // Filter for campaigns the influencer is interested in
+  };
+
+  // Apply additional filters dynamically based on the filter object
+  for (const key of Object.keys(filter)) {
+    if (
+      (key === "campaignName" || key === "status" || key === "budget") &&
+      filter[key] !== ""
+    ) {
+      query[key] = { $regex: filter[key], $options: "i" }; // Case-insensitive regex search
+    } else if (filter[key] !== "") {
+      query[key] = filter[key];  // Exact match for other fields
+    }
+  }
+
+  // Paginate the results and populate the brandId field
+ 
+    const campaigns = await Campaign.paginate(query, {
+      ...option,  // pagination options (page, limit, etc.)
+      populate: 'brandId'  // Populate the brandId field with the brand details
+    });
+    return campaigns;
+  
+};
+
+const getAcceptedCampaignsForInfluencer = async (influencerId, filter, option) => {
+  const query = {
+                // Filter for 'upComming' campaigns
+    acceptedInfluencers: influencerId    // Filter for campaigns the influencer has been accepted into
+  };
+
+  // Apply additional filters dynamically based on the filter object
+  for (const key of Object.keys(filter)) {
+    if (
+      (key === "campaignName" || key === "status" || key === "budget") &&
+      filter[key] !== ""
+    ) {
+      query[key] = { $regex: filter[key], $options: "i" }; // Case-insensitive regex search
+    } else if (filter[key] !== "") {
+      query[key] = filter[key];  // Exact match for other fields
+    }
+  }
+
+  // Paginate the results and populate the brandId field
+ 
+    const campaigns = await Campaign.paginate(query, {
+      ...option,  // pagination options (page, limit, etc.)
+      populate: 'brandId',  // Populate the brandId field with the brand details
+    });
+    return campaigns;
+  
+};
+ 
 
 const submitDraft = async (campaignId, influencerId, draftContent, image, socialPlatform) => {
   try {
@@ -289,18 +446,28 @@ const submitDraft = async (campaignId, influencerId, draftContent, image, social
       throw new Error('Influencer not accepted for this campaign');
     }
 
-    // Add the draft submitted by the influencer
+    // Prevent duplicate draft submissions
+    const alreadySubmitted = campaign.drafts.some(
+      draft => draft.influencerId.toString() === influencerId
+    );
+
+    if (alreadySubmitted) {
+      throw new Error('You have already submitted a draft for this campaign');
+    }
+
+    // Add new draft
     campaign.drafts.push({
       influencerId,
       draftContent,
-      image: image, // Save the image file path
-      socialPlatform, // Save the social platform
+      image,
+      socialPlatform,
     });
-    await campaign.save();
 
+    await campaign.save();
     return campaign;
+
   } catch (error) {
-    throw new Error('Error submitting draft');
+    throw new Error(error.message || 'Error submitting draft');
   }
 };
 
@@ -373,97 +540,7 @@ const approveDraftAndAddBudget = async (campaignId, draftId) => {
     throw new Error('Error approving draft and adding budget');
   }
 };
-
-
-// // To handle the withdrawal request
-// const requestWithdrawal = async (influencerId, amount) => {
-//   try {
-//     // Find influencer and wallet
-//     const influencer = await User.findById(influencerId);
-//     if (!influencer) {
-//       throw new Error('Influencer not found');
-//     }
-
-//     const wallet = await Wallet.findOne({ influencerId });
-//     if (!wallet) {
-//       throw new Error('Wallet not found');
-//     }
-
-//     // Check if the influencer has enough funds
-//     if (wallet.balance < amount) {
-//       throw new Error('Insufficient funds');
-//     }
-
-//     // Create a withdrawal request
-//     const withdrawalRequest = new WithdrawalRequest({
-//       influencerId,
-//       amount,
-//       status: 'pending' // Default status is pending
-//     });
-
-//     // Save the withdrawal request
-//     await withdrawalRequest.save();
-
-//     return withdrawalRequest;
-//   } catch (error) {
-//     throw new Error('Error processing withdrawal request: ' + error.message);
-//   }
-// };
-
-
-// Admin approves the withdrawal
-// const approveWithdrawal = async (requestId) => {
-//   try {
-//     // Find the withdrawal request
-//     const request = await WithdrawalRequest.findById(requestId);
-//     if (!request) {
-//       throw new Error('Withdrawal request not found');
-//     }
-
-//     // Check if the withdrawal request is still pending
-//     if (request.status !== 'pending') {
-//       throw new Error('Withdrawal request already processed');
-//     }
-
-//     // Find the influencer and their wallet
-//     const influencer = await User.findById(request.influencerId);
-//     if (!influencer) {
-//       throw new Error('Influencer not found');
-//     }
-
-//     const wallet = await Wallet.findOne({ influencerId: influencer._id });
-//     if (!wallet) {
-//       throw new Error('Wallet not found');
-//     }
-
-//     // Deduct the requested amount from the wallet balance
-//     if (wallet.balance < request.amount) {
-//       throw new Error('Insufficient funds in the wallet');
-//     }
-
-//     wallet.balance -= request.amount;
-
-//     // Record the withdrawal transaction in the wallet
-//     wallet.transactions.push({
-//       amount: request.amount,
-//       type: 'withdrawal',
-//       description: `Withdrawal approved by admin`,
-//     });
-
-//     // Mark the withdrawal request as approved
-//     request.status = 'approved';
-
-//     // Save the updated wallet and withdrawal request
-//     await wallet.save();
-//     await request.save();
-
-//     return request;
-//   } catch (error) {
-//     throw new Error('Error approving withdrawal: ' + error.message);
-//   }
-// };
-
-
+ 
 
 module.exports = {
   createCampaign,
@@ -475,5 +552,8 @@ module.exports = {
   submitDraft,
   approveDraftAndAddBudget, 
   getAllCampaigns,
-  getMyCampaigns
+  getMyCampaigns,
+  getUpcomingCampaignsForInfluecer,
+  getInterestedCampaignsForInfluencer,
+  getAcceptedCampaignsForInfluencer
 };

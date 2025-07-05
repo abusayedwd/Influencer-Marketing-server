@@ -35,7 +35,8 @@ const transactionSchema = new mongoose.Schema({
 },
   // Unique Stripe Transaction ID or similar
 }, 
-{ timestamps: true });
+{ timestamps: true }
+);
 
 
 transactionSchema.plugin(toJSON)

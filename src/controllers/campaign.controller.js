@@ -194,7 +194,7 @@ const stripeCampaignWebhook = async (req, res) => {
       console.log("Parsed End Date: ", parsedEndDate);
 
       // Determine the status based on start and end dates
-      let status = "upComing"; // Default status
+      let status = "upComming"; // Default status
       if (currentDate >= parsedStartDate && currentDate <= parsedEndDate) {
         status = "active";
       } else if (currentDate > parsedEndDate) {
@@ -471,27 +471,57 @@ const getCampaignDetails = catchAsync(async (req, res) => {
 });
 
 
-const getMyCampaigns = catchAsync(async (req, res) => {
+// const getMyCampaigns = catchAsync(async (req, res) => {
   
-   const filter = pick(req.query, ['campaignName', 'status', 'budget','brandId']); 
+//    const filter = pick(req.query, ['campaignName', 'status', 'budget','brandId']); 
  
-  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+//   const options = pick(req.query, ['sortBy', 'limit', 'page']);
 
-    const brandId  = req.user?.id;
-    const mycampaign = await campaignService.getMyCampaigns(brandId, filter, options);
-    res.status(httpStatus.OK)
-    .json(
-      response({
-        status: "success",
-        message: "get My Campaigns",
-        statusCode: httpStatus.OK, 
-        data: mycampaign
-       })
-      );
+//     const brandId  = req.user?.id;
+//     const mycampaign = await campaignService.getMyCampaigns(brandId, filter, options);
+//     res.status(httpStatus.OK)
+//     .json(
+//       response({
+//         status: "success",
+//         message: "get My Campaigns",
+//         statusCode: httpStatus.OK, 
+//         data: mycampaign
+//        })
+//       );
    
-});
+// });
 
 // Influencer shows interest in the campaign
+
+const getMyCampaigns = catchAsync(async (req, res) => {
+  const filter = pick(req.query, ['campaignName', 'status', 'budget']); // Picking filters from query params
+  const options = pick(req.query, ['sortBy', 'limit', 'page']); // Picking pagination and sorting options
+
+  const brandId = req.user?.id; // Assuming the logged-in user's ID is stored in req.user.id
+  if (!brandId) {
+    return res.status(httpStatus.BAD_REQUEST).json({
+      status: "fail",
+      message: "Brand ID is missing or invalid"
+    });
+  }
+
+  // Get campaigns for the brand using the service function
+  const myCampaigns = await campaignService.getMyCampaigns(brandId, filter, options);
+
+  // Return the campaigns in the response
+  res.status(httpStatus.OK).json(
+    response({
+      status: "success",
+      message: "Successfully retrieved campaigns",
+      statusCode: httpStatus.OK,
+      data: myCampaigns,
+    })
+  );
+});
+
+
+
+
 const showInterest = async (req, res) => {
   try {
     const { campaignId } = req.params;
@@ -502,6 +532,74 @@ const showInterest = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+const getUpcomingCampaignsForInfluecer = catchAsync(async (req, res) => {
+ 
+  const filter = pick(req.query, ['campaignName', 'status', 'budget','brandId']); 
+ 
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+    // Call the service to get campaigns with 'upComming' status
+    const campaigns = await campaignService.getUpcomingCampaignsForInfluecer(filter, options);
+    
+    // Return the result as JSON
+    res.status(200).json(
+       response({
+      message: 'get all Upcomming campaign request',
+      status: 'OK',
+      statusCode: httpStatus.OK,
+      data: campaigns,
+    })
+    ); 
+});
+
+// Controller function to get campaigns that an influencer is interested in
+const getInterestedCampaignsForInfluencer = catchAsync(async (req, res) => {
+  const  influencerId  = req.user.id;  // Get influencerId from the request parameters
+    const filter = pick(req.query, ['campaignName', 'status', 'budget','brandId']); 
+ 
+  const options = pick(req.query, ['sortBy', 'limit', 'page']); // Get filter and option (pagination) from the request body
+
+ 
+    // Call the service to get the campaigns
+    const campaigns = await campaignService.getInterestedCampaignsForInfluencer(influencerId, filter, options);
+
+    // Return the campaigns in the response
+       res.status(200).json(
+       response({
+      message: 'get all interested campaign request',
+      status: 'OK',
+      statusCode: httpStatus.OK,
+      data: campaigns,
+    })
+    ); 
+
+ 
+});
+
+const getAcceptedCampaignsForInfluencer = catchAsync(async (req, res) => {
+  const influencerId = req.user.id;  // Get influencerId from the request parameters
+    const filter = pick(req.query, ['campaignName', 'status', 'budget','brandId']); 
+ 
+  const options = pick(req.query, ['sortBy', 'limit', 'page']); // Get filter and option (pagination) from the request body
+
+ 
+    // Call the service to get the campaigns where the influencer is accepted
+    const campaigns = await campaignService.getAcceptedCampaignsForInfluencer(influencerId, filter, options);
+
+    // Return the campaigns in the response
+       res.status(200).json(
+       response({
+      message: 'get all accepted campaign request',
+      status: 'OK',
+      statusCode: httpStatus.OK,
+      data: campaigns,
+    })
+    ); 
+ 
+});
+
+
+
 
 // Brand accepts an influencer
 const acceptInfluencer = async (req, res) => {
@@ -529,29 +627,70 @@ const denyInfluencer = async (req, res) => {
 };
  
 
+// const submitDraft = async (req, res) => {
+//   try {
+//     const { campaignId } = req.params;
+//     const influencerId = req?.user?.id
+//     const { draftContent, socialPlatform } = req.body;
+
+//     // Ensure the file was uploaded
+//      const image = {};
+//   if (req.file) {
+//     image.url = "/uploads/users/" + req.file.filename;
+//     image.path = req.file.path;
+//   }
+//   if (req.file) {
+//     req.body.image = image;
+//   }
+//     // Ensure file is uploaded
+//     if (!image) {
+//       return res.status(400).json({ message: 'Image file is required' });
+//     }
+ 
+//     // const platforms = socialPlatform ? socialPlatform.split(',') : []; // If multiple platforms are sent, split them
+//    const platforms = JSON.parse(socialPlatform);
+
+//     const campaign = await campaignService.submitDraft(
+//       campaignId,
+//       influencerId,
+//       draftContent,
+//       image,
+//       platforms
+//     );
+
+//     res.status(200).json({ message: 'Draft submitted successfully', campaign });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
 const submitDraft = async (req, res) => {
   try {
     const { campaignId } = req.params;
-    const influencerId = req?.user?.id
+    const influencerId = req?.user?.id;
     const { draftContent, socialPlatform } = req.body;
 
-    // Ensure the file was uploaded
-     const image = {};
-  if (req.file) {
-    image.url = "/uploads/users/" + req.file.filename;
-    image.path = req.file.path;
-  }
-  if (req.file) {
-    req.body.image = image;
-  }
-    // Ensure file is uploaded
-    if (!image) {
+    // File image handling
+    const image = {};
+    if (req.file) {
+      image.url = "/uploads/users/" + req.file.filename;
+      image.path = req.file.path;
+    }
+
+    // Require image
+    if (!req.file) {
       return res.status(400).json({ message: 'Image file is required' });
     }
- 
-    // const platforms = socialPlatform ? socialPlatform.split(',') : []; // If multiple platforms are sent, split them
-   const platforms = JSON.parse(socialPlatform);
 
+    // Parse platforms from JSON string (if sent as JSON string)
+    let platforms;
+    try {
+      platforms = JSON.parse(socialPlatform);
+    } catch (err) {
+      return res.status(400).json({ message: 'Invalid socialPlatform format' });
+    }
+
+    // Submit draft via service
     const campaign = await campaignService.submitDraft(
       campaignId,
       influencerId,
@@ -561,10 +700,13 @@ const submitDraft = async (req, res) => {
     );
 
     res.status(200).json({ message: 'Draft submitted successfully', campaign });
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(400).json({ message: error.message });
   }
 };
+
+
 
 
 const approveDraft = catchAsync(async (req, res) => {
@@ -590,5 +732,8 @@ module.exports = {
   approveDraft,
   getAllCampaigns,
   getMyCampaigns,
-  stripeCampaignWebhook
+  stripeCampaignWebhook,
+  getUpcomingCampaignsForInfluecer,
+  getInterestedCampaignsForInfluencer,
+  getAcceptedCampaignsForInfluencer
 };

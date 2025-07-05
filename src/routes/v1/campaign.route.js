@@ -32,6 +32,18 @@ campaignController.updateCampaign);
 router.get('/getAllCampaigns',auth('common'), campaignController.getAllCampaigns);
 
 router.get('/getMy-Campaigns',auth('common'), campaignController.getMyCampaigns);
+////Influencer showing interest in a campaign
+
+router.get('/:campaignId',auth('common'), campaignController.getCampaignDetails); 
+
+router.get('/getUpcomingCampaignsForInfluecer',auth('influencer'),
+ campaignController.getUpcomingCampaignsForInfluecer);
+
+ router.get('/getInterestedCampaignsForInfluencer',auth('influencer'),
+      campaignController.getInterestedCampaignsForInfluencer);
+
+ router.get('/getAcceptedCampaignsForInfluencer',auth('influencer'),
+      campaignController.getAcceptedCampaignsForInfluencer);
 
 router.post('/interested/:campaignId',auth('influencer'), campaignController.showInterest);
 
@@ -45,7 +57,7 @@ router.post('/submitDraft/:campaignId',auth('influencer'),
 
 router.post('/approveDraft',auth('brand'), campaignController.approveDraft); 
 
-router.get('/:campaignId',auth('common'), campaignController.getCampaignDetails); 
+
  
 
 // router

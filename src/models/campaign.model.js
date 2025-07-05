@@ -147,7 +147,10 @@ const campaignSchema = new mongoose.Schema({
       default: 0
     }
   }],
-});
+},
+{ timestamps: true }
+);
+ 
 
 campaignSchema.plugin(toJSON);
 campaignSchema.plugin(paginate);
