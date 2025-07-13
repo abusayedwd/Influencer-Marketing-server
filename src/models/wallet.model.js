@@ -15,6 +15,9 @@ const walletSchema = new mongoose.Schema({
       type: Number,
       required: true
     },
+  campaignName : {
+      type: String
+    },
     type: {
       type: String,
       enum: ['deposit', 'withdrawal'],

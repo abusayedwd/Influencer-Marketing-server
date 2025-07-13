@@ -7,9 +7,9 @@ const { Wallet } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 // Request Withdrawal (Influencer)
-const requestWithdrawal = async (req, res) => {
-  try {
-    const { influencerId } = req.params;
+const requestWithdrawal = catchAsync(async (req, res) => {
+   
+    const  influencerId  = req.user.id;
     const { amount, bankDetails, reason } = req.body;
 
     // Validate the input (amount, bank details, and reason can be optional or required based on your use case)
@@ -27,29 +27,44 @@ const requestWithdrawal = async (req, res) => {
 
     res.status(200).json({
       message: "Withdrawal request submitted successfully",
+      code: 200,
       withdrawalRequest
     });
 
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+ 
+});
 
 
 // Admin Approves Withdrawal
-const approveWithdrawal = async (req, res) => {
-  try {
-    const { requestId } = req.params;  // Withdrawal request ID to approve
-    const withdrawalRequest = await withdrawalService.approveWithdrawal(requestId);
-
-    res.status(200).json({
-      message: "Withdrawal request approved successfully",
-      withdrawalRequest
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+const approveWithdrawal = catchAsync(async (req, res) => { 
+    const { requestId } = req.params; // Withdrawal request ID to approve
+    const { approvalNote } = req.body; // Note for the approval
+  const image = {};
+  if (req.file) {
+    image.url = "/uploads/users/" + req.file.filename;
+    image.path = req.file.path;
   }
-};
+  if (req.file) {
+    req.body.image = image;
+  }
+    // Ensure file is uploaded
+    if (!image) {
+      return res.status(400).json({ message: 'Image file is required' });
+    }
+
+    // Call the service to approve the withdrawal with the image and note
+    const withdrawalRequest = await withdrawalService.approveWithdrawal(requestId, approvalNote, image);
+
+    res.status(httpStatus.OK).json(
+      response({
+      message: 'Withdrawal request approved successfully',
+      code: httpStatus.OK,
+      data: withdrawalRequest,
+    })
+  );
+  
+});
+
 
 // Get All Withdrawal Requests (for Admin)
 const getAllWithdrawalRequests = catchAsync(async (req, res) => { 
@@ -68,6 +83,30 @@ const getAllWithdrawalRequests = catchAsync(async (req, res) => {
   );
  
 });
+
+
+const getMyWithdrawalRequests = catchAsync(async (req, res) => {
+  // Get the userId from the authenticated user (assuming it's added to req.user)
+  const userId = req.user.id; // Or req.user.id, depending on your auth setup
+
+  const filter = pick(req.query, ['bankName', 'status']);
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+
+  // Add userId to filter to fetch only requests for this specific user
+  filter.influencerId = userId;
+
+  const withdrawalRequests = await withdrawalService.getMyWithdrawalRequests (filter, options);
+  
+  res.status(httpStatus.OK).json(
+    response({
+      message: 'Fetched withdrawal requests for the user',
+      status: 'OK',
+      statusCode: httpStatus.OK,
+      data: withdrawalRequests,
+    })
+  );
+});
+
 
 // Get Withdrawal Request by ID (for Admin)
 const getWithdrawById = async (req, res) => {
@@ -89,33 +128,36 @@ const getWithdrawById = async (req, res) => {
 };
 
 
-const getWallet = catchAsync(async (req, res)=> {
 
+
+const getWallet = catchAsync(async (req, res) => {
   const influencerId = req.user.id;
 
-  const wallet = await Wallet.findOne({influencerId: influencerId})
-  if(!wallet){
-    throw new ApiError(httpStatus.NOT_FOUND, "Wallet not found")
+  const wallet = await Wallet.findOne({ influencerId: influencerId });
+  
+  if (!wallet) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Wallet not found");
   }
 
-  res.status(httpStatus.OK)
-    .json(
-      response({
-        message: "Wallet get successfully",
-        status: "OK",
-        statusCode: httpStatus.OK,
-        data: wallet,
-      })
-    );
+  // Sort transactions by date in descending order
+  wallet.transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-}
+  res.status(httpStatus.OK).json(
+    response({
+      message: "Wallet get successfully",
+      status: "OK",
+      statusCode: httpStatus.OK,
+      data: wallet,
+    })
+  );
+});
 
-)
 
 module.exports = { 
     requestWithdrawal, 
     approveWithdrawal, 
     getAllWithdrawalRequests ,
     getWithdrawById,
-    getWallet
+    getWallet,
+    getMyWithdrawalRequests 
 };

@@ -218,7 +218,7 @@ const stripeCampaignWebhook = async (req, res) => {
 
       // Create and save the campaign to the database
       const campaign = await campaignService.createCampaign(campaignData);
-
+      console.log(campaign)
       // Ensure campaign status is updated before saving
       await campaign.save();
 
@@ -237,11 +237,7 @@ const stripeCampaignWebhook = async (req, res) => {
   }
 };
 
-
-
-
-
-
+ 
 
 
 
@@ -321,18 +317,7 @@ const stripeCampaignWebhook = async (req, res) => {
  
 // Controller to update campaign
 
-
-
-
-
-
-
-
-
-
-
-
-
+  
 
 
 
@@ -454,6 +439,31 @@ const getAllCampaigns = catchAsync(async (req, res) => {
 
 } )
 
+const getMyCampaigns = catchAsync(async (req, res) => {
+  const filter = pick(req.query, ['campaignName', 'status', 'budget']); // Picking filters from query params
+  const options = pick(req.query, ['sortBy', 'limit', 'page']); // Picking pagination and sorting options
+
+  const brandId = req.user?.id; // Assuming the logged-in user's ID is stored in req.user.id
+  if (!brandId) {
+    return res.status(httpStatus.BAD_REQUEST).json({
+      status: "fail",
+      message: "Brand ID is missing or invalid"
+    });
+  }
+
+  // Get campaigns for the brand using the service function
+  const myCampaigns = await campaignService.getMyCampaigns(brandId, filter, options);
+
+  // Return the campaigns in the response
+  res.status(httpStatus.OK).json(
+    response({
+      status: "success",
+      message: "Successfully retrieved campaigns",
+      statusCode: httpStatus.OK,
+      data: myCampaigns,
+    })
+  );
+});
 // Get campaign details along with interested and accepted influencers
 const getCampaignDetails = catchAsync(async (req, res) => {
   
@@ -493,31 +503,8 @@ const getCampaignDetails = catchAsync(async (req, res) => {
 
 // Influencer shows interest in the campaign
 
-const getMyCampaigns = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ['campaignName', 'status', 'budget']); // Picking filters from query params
-  const options = pick(req.query, ['sortBy', 'limit', 'page']); // Picking pagination and sorting options
 
-  const brandId = req.user?.id; // Assuming the logged-in user's ID is stored in req.user.id
-  if (!brandId) {
-    return res.status(httpStatus.BAD_REQUEST).json({
-      status: "fail",
-      message: "Brand ID is missing or invalid"
-    });
-  }
 
-  // Get campaigns for the brand using the service function
-  const myCampaigns = await campaignService.getMyCampaigns(brandId, filter, options);
-
-  // Return the campaigns in the response
-  res.status(httpStatus.OK).json(
-    response({
-      status: "success",
-      message: "Successfully retrieved campaigns",
-      statusCode: httpStatus.OK,
-      data: myCampaigns,
-    })
-  );
-});
 
 
 
@@ -527,7 +514,7 @@ const showInterest = async (req, res) => {
     const { campaignId } = req.params;
     const  influencerId  = req.user.id;
     const campaign = await campaignService.showInterest(campaignId, influencerId);
-    res.status(200).json({ message: "Interest shown successfully", campaign });
+    res.status(200).json({ message: "Interest shown successfully", code:200, campaign });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -602,20 +589,17 @@ const getAcceptedCampaignsForInfluencer = catchAsync(async (req, res) => {
 
 
 // Brand accepts an influencer
-const acceptInfluencer = async (req, res) => {
-  try {
+const acceptInfluencer = catchAsync(async (req, res) => {
+ 
     const { campaignId } = req.params;
     const { influencerId } = req.body;
     const campaign = await campaignService.acceptInfluencer(campaignId, influencerId);
-    res.status(200).json({ message: "Influencer accepted", campaign });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+    res.status(200).json({ message: "Influencer accepted", code:200, campaign }); 
+});
 
 const denyInfluencer = async (req, res) => {
   try {
-    const { campaignId } = req.params;
+    const { campaignId } = req.params; 
     const { influencerId } = req.body;
 
     const campaign = await campaignService.denyInfluencer(campaignId, influencerId);

@@ -42,6 +42,8 @@ const {User} = require('../models');
 const DraftApprove = require('../models/draft.model');
 const { populate } = require('../models/service.model');
 const Wallet = require('../models/wallet.model');
+const ApiError = require('../utils/ApiError');
+const httpStatus = require('http-status');
  
  
 
@@ -277,31 +279,32 @@ const showInterest = async (campaignId, influencerId) => {
 
 // Brand accepts an influencer
 const acceptInfluencer = async (campaignId, influencerId) => {
-  try {
+ 
     const campaign = await Campaign.findById(campaignId);
 
     if (!campaign) {
-      throw new Error('Campaign not found');
+      throw new ApiError('Campaign not found');
     }
+    // if (!influencerId) {
+    //   throw new ApiError(httpStatus.NOT_FOUND,'Influencer not found');
+    // }
 
     if (campaign.acceptedInfluencers.length >= campaign.influencerCount) {
-      throw new Error('Cannot accept more influencers');
+      throw new ApiError('Cannot accept more influencers');
     }
 
-    if (!campaign.interestedInfluencers.includes(influencerId)) {
-      throw new Error('Influencer did not show interest');
-    }
+    // if (!campaign.interestedInfluencers.includes(influencerId)) {
+    //   throw new Error('Influencer did not show interest');
+    // }
 
     // Accept influencer and move from interested to accepted
     campaign.acceptedInfluencers.push(influencerId);
-    campaign.interestedInfluencers = campaign.interestedInfluencers.filter(id => id.toString() !== influencerId.toString());
+    campaign.interestedInfluencers = campaign.interestedInfluencers.filter(id => id?.toString() !== influencerId?.toString());
 
     await campaign.save();
 
     return campaign;
-  } catch (error) {
-    throw new Error('Error accepting influencer');
-  }
+  
 };
 
 const denyInfluencer = async (campaignId, influencerId) => {
@@ -474,7 +477,7 @@ const submitDraft = async (campaignId, influencerId, draftContent, image, social
 
 
 const approveDraftAndAddBudget = async (campaignId, draftId) => {
-  try {
+  
     const campaign = await Campaign.findById(campaignId);
 
     if (!campaign) {
@@ -515,6 +518,7 @@ const approveDraftAndAddBudget = async (campaignId, draftId) => {
     wallet.transactions.push({
       amount: budget,
       type: 'deposit',
+      campaignName: campaign?.campaignName,
       description: 'Budget added after draft approval'
     });
 
@@ -536,9 +540,7 @@ const approveDraftAndAddBudget = async (campaignId, draftId) => {
     await campaign.save();
 
     return campaign;
-  } catch (error) {
-    throw new Error('Error approving draft and adding budget');
-  }
+  
 };
  
 

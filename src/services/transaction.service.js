@@ -10,7 +10,7 @@ const ApiError = require("../utils/ApiError");
 
 const createTransaction = async (transactionData) => {
 
-    const { campaignId, brandId, amount, transactionId } = transactionData;
+    const { campaignId, brandId, amount, transactionId, } = transactionData;
   try {
     const transaction = new Transaction({
       campaignId,
@@ -49,19 +49,14 @@ const getAllTransactions = async (filter, options) => {
     }
   }
 
-  try {
+ 
     // Use pagination and populate for related fields
-    const transactions = await Transaction.paginate(query, {
-      ...options,
-      populate: 'campaignId', // Populate references
-      
-    });
-
+const transactions = await Transaction.paginate(query, {
+  ...options,
+  populate: ['campaignId', 'brandId fullName email phone phoneNumber'],
+});
     return transactions;
-  } catch (error) {
-    console.error("Error retrieving transactions:", error);
-    throw new Error("Error retrieving transactions");
-  }
+  
 };
 
 

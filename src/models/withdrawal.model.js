@@ -1,5 +1,56 @@
+// const mongoose = require('mongoose');
+// const { toJSON,paginate } = require('./plugins');
+
+// const withdrawalRequestSchema = new mongoose.Schema({
+//   influencerId: {
+//     type: mongoose.Schema.Types.ObjectId,
+//     ref: 'User',
+//     required: true
+//   },
+//   amount: {
+//     type: Number,
+//     required: true
+//   },
+//   status: {
+//     type: String,
+//     enum: ['pending', 'approved', 'rejected'],
+//     default: 'pending'
+//   },
+//   bankDetails: {
+//     bankName: {
+//       type: String,
+//       required: true
+//     },
+//     accountNumber: {
+//       type: String,
+//       required: true
+//     },
+//     routingNumber: {
+//       type: String,
+//       required: true
+//     }
+//   },
+//   reason: {
+//     type: String,
+//     required: true
+//   },
+//   createdAt: {
+//     type: Date,
+//     default: Date.now
+//   }
+// });
+
+// withdrawalRequestSchema.plugin(toJSON);
+// withdrawalRequestSchema.plugin(paginate);
+
+// const WithdrawalRequest = mongoose.model('WithdrawalRequest', withdrawalRequestSchema);
+
+// module.exports = WithdrawalRequest;
+
+
+
 const mongoose = require('mongoose');
-const { toJSON,paginate } = require('./plugins');
+const { toJSON, paginate } = require('./plugins');
 
 const withdrawalRequestSchema = new mongoose.Schema({
   influencerId: {
@@ -25,7 +76,7 @@ const withdrawalRequestSchema = new mongoose.Schema({
       type: String,
       required: true
     },
-    routingNumber: {
+    holderName: {
       type: String,
       required: true
     }
@@ -34,6 +85,15 @@ const withdrawalRequestSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  approvalNote: { // New field for the admin's note
+    type: String,
+    required: false, // This is optional for now, based on your use case
+  },
+  image: {
+      type: Object,
+      required: [true, "Image is required"],
+      default: { url: ``, path: "null" },
+    },
   createdAt: {
     type: Date,
     default: Date.now

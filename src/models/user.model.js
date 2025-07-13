@@ -39,7 +39,7 @@ const userSchema = mongoose.Schema(
     image: {
       type: Object,
       required: [true, "Image is required"],
-      default: { url: `/uploads/users/users-1748606204040.jpg`, path: "null" },
+      default: { url: `/uploads/users/user-1752036041119.jpg`, path: "null" },
     },
     password: {
       type: String,

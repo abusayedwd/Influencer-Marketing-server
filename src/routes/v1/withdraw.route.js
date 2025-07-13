@@ -22,9 +22,13 @@ const router = express.Router();
 //      convertHeicToPngMiddleware(UPLOADS_FOLDER_USERS),
 //      campaignController.createCampaign);
  
-router.post("/request-withdrawal/:influencerId", auth("influencer"), withdrawController.requestWithdrawal)
-router.post("/Payment-approveWithdrawal/:requestId", auth("common"), withdrawController.approveWithdrawal)
+router.post("/request-withdrawal", auth("influencer"), withdrawController.requestWithdrawal)
+router.post("/Payment-approveWithdrawal/:requestId", auth("common"),
+    [uploadUsers.single("image")],
+    convertHeicToPngMiddleware(UPLOADS_FOLDER_USERS),
+ withdrawController.approveWithdrawal)
 router.get("/getAllWithdrawalRequests", auth("common"), withdrawController.getAllWithdrawalRequests)
+router.get("/getMyWithdrawalRequests", auth("influencer"), withdrawController.getMyWithdrawalRequests)
 
 router.get("/my-wallet", auth("influencer"), withdrawController.getWallet)
 

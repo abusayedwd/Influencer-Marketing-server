@@ -61,8 +61,6 @@
 // };
 // // Example
 
-
-
 const paginate = (schema) => {
   schema.statics.paginate = async function (filter, options) {
     let sort = '';
@@ -86,15 +84,21 @@ const paginate = (schema) => {
     let docsPromise = this.find(filter).sort(sort).skip(skip).limit(limit);
 
     if (options?.populate) {
-      options?.populate.split(',').forEach((populateOption) => {
+      // Ensure populate is a string or array of strings
+      const populateFields = Array.isArray(options.populate) ? options.populate : options.populate.split(',');
+
+      populateFields.forEach((populateOption) => {
         const [field, ...fieldsToPopulate] = populateOption.split(' ');
         let populateFields = '';
+
         if (fieldsToPopulate.length > 0) {
           populateFields = fieldsToPopulate.join(' ');
         }
+
+        // Specify which fields to select from the populated collection
         docsPromise = docsPromise.populate({
           path: field,
-          select: populateFields
+          select: populateFields ? populateFields : '', // Populate specific fields if provided
         });
       });
     }
@@ -117,3 +121,4 @@ const paginate = (schema) => {
 };
 
 module.exports = paginate;
+

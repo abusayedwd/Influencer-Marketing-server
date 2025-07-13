@@ -24,9 +24,19 @@ const usersData = [
     fullName: "Testing influencer",
     email: "influencer@gmail.com",
     phoneNumber: "01734456873",
-    password: "$2a$08$2/Dkyz5rK4bQ59Jlp8rLw.abgnbK1N1SiegBht1DH9QgkqGz0yVYi",
+    password: "$2a$08$e5xBBUZQhpIaDK3ybfONauw6MX8q7GgpaHCe1wPj5EKyvSb6xGuie",
     role: "influencer",
-    isEmailVerified: "true"
+    isEmailVerified: "true",
+    socialMedia: [
+    {
+      platform: 'Facebook',
+      url: 'https://www.facebook.com/',
+      followers: '34k'
+    },
+    { platform: 'Instagram', url: '23k', followers: '36k' },
+    { platform: 'Twitter', url: '323k' }
+  ],
+  interests: [ 'Fashion & Style', 'Beauty & Cosmetics', 'Gaming' ]
   },
 ];
 
