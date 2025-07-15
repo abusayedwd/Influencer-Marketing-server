@@ -6,18 +6,30 @@ const draftApproveSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Campaign',
     required: true
-  },
-  draftId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Draft',
-    required: true
-  },
+  }, 
   influencerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
+ draftContent: String,
+     image: {
+      type: Object, 
+      default: { url: ``, path: "null" },
+    },  
+     socialPlatform: [{
+      platform: String,  
+      url: String   
+    }],
   budget: {
+    type: Number,
+    required: true
+  },
+    campaignName: {
+    type: String,
+    required: true
+  },
+    influencerCount: {
     type: Number,
     required: true
   },
@@ -30,6 +42,8 @@ const draftApproveSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+
 
 const DraftApprove = mongoose.model('DraftApprove', draftApproveSchema);
 

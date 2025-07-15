@@ -8,7 +8,7 @@ const usersData = [
     fullName: "Testing Admin",
     email: "admin@gmail.com",
     phoneNumber: "01735566789",
-    password: "$2a$08$KNlL9JvShgNYwXfC4H4OV..WmiOsAFZDYEEDjuvG8TiCmF33NSWv6",
+    password: "$2a$08$J3n2nNG.Z3Ep3sJxBAfyzObCClybfYHL0RVi0BJNtu73JdDksm.jy",
     role: "admin",
     isEmailVerified: "true"
   },

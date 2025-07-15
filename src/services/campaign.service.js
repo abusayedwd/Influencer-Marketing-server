@@ -464,7 +464,7 @@ const submitDraft = async (campaignId, influencerId, draftContent, image, social
       draftContent,
       image,
       socialPlatform,
-    });
+    }); 
 
     await campaign.save();
     return campaign;
@@ -530,7 +530,10 @@ const approveDraftAndAddBudget = async (campaignId, draftId) => {
       campaignId,
       draftId,
       influencerId: draft.influencerId,
+      image:draft.image,
       budget,
+      campaignName: campaign.campaignName,
+      influencerCount:campaign.influencerCount, 
       isApproved: true
     });
 

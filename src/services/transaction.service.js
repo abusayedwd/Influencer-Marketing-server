@@ -59,6 +59,36 @@ const transactions = await Transaction.paginate(query, {
   
 };
 
+const getMyTransactions = async (filter, options, brandId) => {
+
+  const query = {brandId};
+
+  // Loop through each key in the filter object
+  for (const key of Object.keys(filter)) {
+    if (filter[key] !== "") {
+      if (key === "planName" || key === "price" || key === "status") {
+        // Use regex for partial matching and case-insensitive search
+        query[key] = { $regex: new RegExp(filter[key], 'i') };
+      } else if (key === "price") {
+        // Handle price as a number (if you want a numeric range)
+        query[key] = { $gte: parseFloat(filter[key]) }; // Example: greater than or equal to
+      } else {
+        // For other fields, use the direct filter value
+        query[key] = filter[key];
+      }
+    }
+  }
+
+ 
+    // Use pagination and populate for related fields
+const transactions = await Transaction.paginate(query, {
+  ...options,
+  populate: ['campaignId campaignName budget description', 'brandId fullName email phone phoneNumber'],
+});
+    return transactions;
+  
+};
+
 
 // Get a transaction by its ID
 const getTransactionById = async (id) => {
@@ -81,7 +111,13 @@ const deleteTransaction = async (id) => {
     return transaction; 
 };
 
-module.exports = { createTransaction, getAllTransactions, getTransactionById, deleteTransaction };
+module.exports = { 
+  createTransaction,
+   getAllTransactions,
+    getTransactionById,
+     deleteTransaction ,
+     getMyTransactions
+    };
 
 
 

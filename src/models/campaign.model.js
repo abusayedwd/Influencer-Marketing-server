@@ -126,13 +126,12 @@ const campaignSchema = new mongoose.Schema({
     },
     draftContent: String,
      image: {
-      type: Object,
-      required: [true, "Image is required"],
+      type: Object, 
       default: { url: ``, path: "null" },
     },  
      socialPlatform: [{
-      name: String,    // Name of the social platform (e.g., Facebook, Instagram)
-      link: String     // The link or URL for the platform (e.g., https://instagram.com/xyz)
+      platform: String,  
+      url: String   
     }],
     createdAt: { 
       type: Date, 

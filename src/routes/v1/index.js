@@ -7,6 +7,7 @@ const taskRoute = require("./tasks.routes");
 const paymentRorte = require("./payment.route");
 const campaignRoute = require("./campaign.route");
 const withdrawRoute = require("./withdraw.route");
+const dashboardRoute = require("./dashboardStatus.route");
 
 
 const router = express.Router();
@@ -35,6 +36,10 @@ const defaultRoutes = [
   {
     path: "/withdraw",
     route: withdrawRoute, 
+  },
+  {
+    path: "/dashboard",
+    route: dashboardRoute, 
   },
   
  

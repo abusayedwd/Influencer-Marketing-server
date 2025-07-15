@@ -78,7 +78,8 @@ const response = require("../config/response");
 const ApiError = require("../utils/ApiError");
 const pick = require("../utils/pick");
 const { Campaign } = require("../models");
-const transactionController = require("./transaction.controller")
+const transactionController = require("./transaction.controller");
+const DraftApprove = require("../models/draft.model");
  
 const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
 const endpointSecret = process.env.CREATE_CAMPAIGN_WEBHOOK_SECRET;
@@ -238,87 +239,7 @@ const stripeCampaignWebhook = async (req, res) => {
 };
 
  
-
-
-
-
-
-
-// const stripeCampaignWebhook = async (req, res) => {
-//   console.log("Webhook endpoint hit!");
-
-//   const sig = req.headers["stripe-signature"];
-//   let event;
-
-//   try {
-//     if (!endpointSecret) {
-//       console.error("Stripe webhook secret not configured.");
-//       return res.status(400).json({ error: "Webhook secret not configured" });
-//     }
-
-//     event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
-//     console.log("Webhook verified.");
-
-//     const data = event.data.object;
-//     const eventType = event.type;
-
-//     console.log(`Received event type: ${eventType}`);
-
-//     if (eventType === "checkout.session.completed") {
-//       const session = data;
-//       console.log("Payment successfully completed. Session details:", session);
-
-//       // Check if the event is for the correct project
-//       if (session.metadata && session.metadata.project !== "your-project-name") {
-//         console.log("Event not for this project, ignoring...");
-//         return res.status(200).json({ received: true, ignored: true });
-//       }
-
-//       const { brandId, budget, campaignName, totalAmount, startDate, endDate, image, description, influencerCount, selectedPlatforms } = session?.metadata;
-  
-// // Create the campaign in the database with the correct status
-// const campaignData = {
-//   budget, // Convert back to original amount (in EUR, USD, etc.)
-//   brandId,
-//   campaignName,
-//   description,
-//   endDate,
-//   influencerCount,
-//   selectedPlatforms, // Convert comma-separated string to an array
-//   startDate,
-//   totalAmount, 
-//   image,  // Use the image URL from metadata
-// };
-
-// // Create and save the campaign to the database
-// const campaign = await campaignService.createCampaign(campaignData);
-
-// // Ensure campaign status is updated before saving
-// await campaign.save();
-
-
-    
-
-//      await transactionController.createTransactionForCampaign(campaign, "Stripe", session);
-
-//       console.log("Campaign and transaction created successfully:", campaign);
-
-//       // Respond to acknowledge receipt of the event
-//       res.status(200).json({ received: true, eventType });
-//     } else {
-//       res.status(200).json({ received: true, ignored: true });
-//     }
-//   } catch (error) {
-//     console.error("Error processing webhook event:", error);
-//     res.status(200).json({ error: "Internal server error", received: true });
-//   }
-// };
-
  
-// Controller to update campaign
-
-  
-
 
 
 const updateCampaign = catchAsync(async (req, res) => {
@@ -368,53 +289,7 @@ const updateCampaign = catchAsync(async (req, res) => {
  
  
 });
-
-
-
-
-
-// const createCampaign = catchAsync(async (req, res) => {
-//    const brandId = req.user.id;
-//     const { budget,  campaignName, description, endDate, influencerCount, selectedPlatforms, startDate, totalAmount } = req.body;
-//     // const image = req.file;  // Multer will automatically store the uploaded file info in `req.file`
-   
-  //   const image = {};
-  // if (req.file) {
-  //   image.url = "/uploads/users/" + req.file.filename;
-  //   image.path = req.file.path;
-  // }
-  // if (req.file) {
-  //   req.body.image = image;
-  // }
-  //   // Ensure file is uploaded
-  //   if (!image) {
-  //     return res.status(400).json({ message: 'Image file is required' });
-  //   }
-
-//     // Create campaign object
-//     const campaignData = {
-//       budget,
-//       brandId,
-//       campaignName,
-//       description,
-//       endDate,
-//       influencerCount,
-//       selectedPlatforms: selectedPlatforms.split(','),
-//       startDate,
-//       totalAmount,
-//       image 
-//     };
-
-//     const campaign = await campaignService.createCampaign(campaignData);
-//     res.status(httpStatus.CREATED).json(
-//       { status: "success",
-//         message: 'Campaign created successfully',
-//         statusCode: httpStatus.CREATED,
-//         campaign 
-//        });
-  
-// });
-  
+ 
 
 const getAllCampaigns = catchAsync(async (req, res) => {
 
@@ -480,34 +355,7 @@ const getCampaignDetails = catchAsync(async (req, res) => {
    
 });
 
-
-// const getMyCampaigns = catchAsync(async (req, res) => {
   
-//    const filter = pick(req.query, ['campaignName', 'status', 'budget','brandId']); 
- 
-//   const options = pick(req.query, ['sortBy', 'limit', 'page']);
-
-//     const brandId  = req.user?.id;
-//     const mycampaign = await campaignService.getMyCampaigns(brandId, filter, options);
-//     res.status(httpStatus.OK)
-//     .json(
-//       response({
-//         status: "success",
-//         message: "get My Campaigns",
-//         statusCode: httpStatus.OK, 
-//         data: mycampaign
-//        })
-//       );
-   
-// });
-
-// Influencer shows interest in the campaign
-
-
-
-
-
-
 
 const showInterest = async (req, res) => {
   try {
@@ -610,45 +458,8 @@ const denyInfluencer = async (req, res) => {
   }
 };
  
-
-// const submitDraft = async (req, res) => {
-//   try {
-//     const { campaignId } = req.params;
-//     const influencerId = req?.user?.id
-//     const { draftContent, socialPlatform } = req.body;
-
-//     // Ensure the file was uploaded
-//      const image = {};
-//   if (req.file) {
-//     image.url = "/uploads/users/" + req.file.filename;
-//     image.path = req.file.path;
-//   }
-//   if (req.file) {
-//     req.body.image = image;
-//   }
-//     // Ensure file is uploaded
-//     if (!image) {
-//       return res.status(400).json({ message: 'Image file is required' });
-//     }
  
-//     // const platforms = socialPlatform ? socialPlatform.split(',') : []; // If multiple platforms are sent, split them
-//    const platforms = JSON.parse(socialPlatform);
-
-//     const campaign = await campaignService.submitDraft(
-//       campaignId,
-//       influencerId,
-//       draftContent,
-//       image,
-//       platforms
-//     );
-
-//     res.status(200).json({ message: 'Draft submitted successfully', campaign });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
-const submitDraft = async (req, res) => {
+const submitDraft = catchAsync(async (req, res) => {
   try {
     const { campaignId } = req.params;
     const influencerId = req?.user?.id;
@@ -683,12 +494,16 @@ const submitDraft = async (req, res) => {
       platforms
     );
 
-    res.status(200).json({ message: 'Draft submitted successfully', campaign });
+    
+
+
+
+    res.status(200).json({ message: 'Draft submitted successfully',code: 200, campaign });
 
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
-};
+});
 
 
 
@@ -700,9 +515,21 @@ const approveDraft = catchAsync(async (req, res) => {
 
     const campaign = await campaignService.approveDraftAndAddBudget(campaignId, draftId);
 
-    res.status(200).json({ message: "Draft approved and budget added to wallet", campaign });
+    res.status(200).json({ message: "Draft approved and budget added to wallet", code:200, campaign });
   
 });
+
+const getMydraft = catchAsync(async(req, res)=> {
+  const influencerId = req.user.id
+  const drafts = await DraftApprove.find({influencerId})
+  res.status(httpStatus.OK).json({
+    message: "get success",
+    code : httpStatus.OK,
+    data: drafts
+  })
+}
+
+)
 
 
 module.exports = {
@@ -719,5 +546,6 @@ module.exports = {
   stripeCampaignWebhook,
   getUpcomingCampaignsForInfluecer,
   getInterestedCampaignsForInfluencer,
-  getAcceptedCampaignsForInfluencer
+  getAcceptedCampaignsForInfluencer,
+  getMydraft
 };

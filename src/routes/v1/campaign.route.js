@@ -99,9 +99,10 @@ campaignController.getInterestedCampaignsForInfluencer);
 router.get('/getAcceptedCampaignsForInfluencer', auth('influencer'), 
 campaignController.getAcceptedCampaignsForInfluencer);
 
+router.get('/getMydraft', auth('influencer'), campaignController.getMydraft);
+
 router.get('/:campaignId', auth('common'), campaignController.getCampaignDetails);
 // Campaign Creation / Update (Post / Put) Routes
-
 
 // Updating Campaign
 router.put('/updateCampaign/:campaignId', auth('brand'),

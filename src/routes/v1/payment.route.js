@@ -3,7 +3,8 @@ const router = express.Router();
 const bodyParser = require('body-parser');
 const auth = require('../../middlewares/auth');
 const { subscriptionController, campaignController } = require('../../controllers');
-const transactionController = require("../../controllers/transaction.controller")
+const transactionController = require("../../controllers/transaction.controller");
+const { dashboredBar, influencerStatus } = require('../../controllers/dashboardStatus.controller');
 // CRITICAL: Webhook route must be defined BEFORE any global JSON middleware
 router.post('/webhook-subscription',
   bodyParser.raw({ type: 'application/json' }),  // Ensure that raw body is passed to the webhook
@@ -15,6 +16,9 @@ router.post('/webhook-createCampaign',
   campaignController.stripeCampaignWebhook
 );
 
+router.get("/dashbord-status", auth("common"), dashboredBar);
+
+router.get("/influencer-status", auth("common"), influencerStatus);
 
 router.get("/getAllSubscriptions", auth("common"),subscriptionController.getAllSubscriptions);
 
@@ -29,6 +33,8 @@ router.post('/pay',auth('common'), subscriptionController.createPlanPayment);
 
 //Transaction Route heare,
 router.get('/get-transactions',auth("common"), transactionController.getAllTransactions);
+
+router.get('/getMyTransactions',auth("common"), transactionController.getMyTransactions);
 
 // Get transaction by ID
 router.get('/transaction/:id',auth("common"), transactionController.getTransactionById);

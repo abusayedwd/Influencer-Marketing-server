@@ -49,6 +49,24 @@ const getAllTransactions = catchAsync(async (req, res) => {
  
 });
 
+const getMyTransactions = catchAsync(async (req, res) => {
+ const brandId = req.user.id;
+  const filter = pick(req.query, ['paymentStatus', 'amount',]);
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+
+    const transactions = await transactionService.getMyTransactions(filter, options, brandId);
+    res.status(httpStatus.OK).json(
+        response(
+            {
+             staus: "success",
+             messsage: "get Transaction",
+             statusCode: httpStatus.OK, 
+             data: transactions 
+            })
+        );
+ 
+});
+
 // Get a transaction by its ID
 const getTransactionById =  catchAsync(  async(req, res) => {
   const { id } = req.params; 
@@ -76,7 +94,8 @@ module.exports = {
     createTransactionForCampaign, 
     getAllTransactions, 
     getTransactionById, 
-    deleteTransaction 
+    deleteTransaction ,
+    getMyTransactions
 };
 
 
