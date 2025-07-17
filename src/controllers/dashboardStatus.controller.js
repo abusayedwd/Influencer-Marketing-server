@@ -203,6 +203,85 @@ const adminEarining =  catchAsync (async(  req, res) => {
   
 });
 
+const adminpaymentToInfluencerChart =  catchAsync (async(  req, res) => {
+  
+    const admin = req.user.role;
+
+    if (admin !== "admin") {
+      return res.status(400).json(
+         response({
+          status: "error",
+          statusCode: 400,
+          message: "You are not an admin.",
+        })
+      );
+    }
+
+    const { year } = req.query; // Get the year from the query params
+    if (!year || isNaN(year)) {
+      return res.status(400).json(
+       response({
+          status: "error",
+          statusCode: 400,
+          message: "Please provide a valid year.",
+        })
+      );
+    }
+
+    // Define all months with initial earnings set to 0
+    const allMonths = {
+      Jan: 0,
+      Feb: 0,
+      Mar: 0,
+      Apr: 0,
+      May: 0,
+      Jun: 0,
+      Jul: 0,
+      Aug: 0,
+      Sep: 0,
+      Oct: 0,
+      Nov: 0,
+      Dec: 0,
+    };
+
+    // Get all subscriptions paid in the specified year
+    const earnings = await  WithdrawalRequest.find({ 
+        status:"approved",
+      createdAt: {
+        $gte: new Date(`${year}-01-01`),
+        $lt: new Date(`${parseInt(year) + 1}-01-01`),
+      },
+    });
+
+    // Helper function to get month abbreviation
+    const getMonthAbbreviation = (date) => {
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      return monthNames[new Date(date).getMonth()];
+    };
+
+    // Aggregate earnings by month
+    earnings.forEach((transaction) => {
+      const month = getMonthAbbreviation(transaction.createdAt);
+      allMonths[month] += transaction.amount;
+    });
+
+    // Format the response as an array of objects
+    const formattedResponse = Object.keys(allMonths).map((month) => ({
+      month,
+      totalEarnings: allMonths[month].toFixed(2), // Format to 2 decimal places
+    }));
+
+    return res.status(200).json(
+      response({
+        status: "success",
+        statusCode: 200,
+        message: `Yearly earnings for ${year} by month`,
+        data: formattedResponse,
+      })
+    );
+  
+});
+
 const brandEariningChart =  catchAsync (async(  req, res) => {
   
     const admin = req.user.role;
@@ -383,6 +462,7 @@ const influencerEarningsChart = catchAsync(async (req, res) => {
   );
 });
 
+ 
 
 
 
@@ -392,5 +472,6 @@ const influencerEarningsChart = catchAsync(async (req, res) => {
      influencerStatus,
      influencerEarningsChart,
      brandPayment,
-     brandEariningChart
+     brandEariningChart,
+     adminpaymentToInfluencerChart
    }

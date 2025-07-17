@@ -56,7 +56,8 @@ app.use(compression());
 
 // enable cors
 app.use(cors({
-    origin: 'http://10.10.7.68:3000' 
+  origin: "*",  // Allow this origin
+  
 }));
 
 app.options("*", cors());
