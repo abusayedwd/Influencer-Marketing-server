@@ -8,10 +8,10 @@ const myIp = process.env.BACKEND_IP;
 
 let server;
 mongoose.connect(config.mongoose.url, config.mongoose.options).then(() => {
-  logger.info("Connected to MongoDB");
+    logger.info("Connected to MongoDB atlast");
   server = app.listen(config.port, myIp, () => {
     // logger.info(`Listening to port ${config.port}`);
-    logger.info(`Listening to ip https://${myIp}:${config.port}`);
+    logger.info(`Listening to ip https://${myIp}:${config.port}`); 
   });
 
   //initializing socket io
