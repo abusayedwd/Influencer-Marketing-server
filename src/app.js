@@ -16,7 +16,7 @@ const { errorConverter, errorHandler } = require("./middlewares/error");
 const ApiError = require("./utils/ApiError");
 const bodyParser = require("body-parser"); 
 
-const app = express(); 
+const app = express();  
 
 if (config.env !== "test") {
   app.use(morgan.successHandler);
