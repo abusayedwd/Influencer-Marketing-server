@@ -77,6 +77,25 @@ if (config.env === "production") {
 // v1 api routes
 app.use("/v1", routes); 
 
+// Add this before your existing /test route
+app.get("/", (req, res) => {
+  res.json({ 
+    status: "ok", 
+    message: "Influencer API is running",
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get("/health", (req, res) => {
+  res.json({ 
+    status: "healthy",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+
+
 //testing API is alive
 app.get("/test", (req, res) => {
   const Ip = "https://sayed8080.sobhoy.com/"
