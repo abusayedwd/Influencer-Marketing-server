@@ -12,12 +12,9 @@
       "dest": "src/index.js"
     }
   ],
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "pages/api/users/**/*.js": {
+    "src/index.js": {
       "maxDuration": 30
     }
   }
-}
 }
