@@ -76,11 +76,17 @@ if (process.env.VERCEL) {
     logger.info("Connected to MongoDB Atlas");
   }
 
-  module.exports = async (req, res) => {
+module.exports = async (req, res) => {
+  try {
+    console.log('Serverless function called:', req.url);
     await connectToDatabase();
     const handler = serverless(app);
     return handler(req, res);
-  };
+  } catch (error) {
+    console.error('Serverless error:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
 
 } else {
   // === Local development mode ===
