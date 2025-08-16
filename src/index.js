@@ -101,13 +101,14 @@ if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
 
     try {
       // Set shorter timeout for serverless
-      const connection = await mongoose.connect(config.mongoose.url, {
-        ...config.mongoose.options,
-        maxPoolSize: 1, // Limit connection pool for serverless
-        serverSelectionTimeoutMS: 5000, // 5 second timeout
-        socketTimeoutMS: 5000,
-        bufferMaxEntries: 0 // Disable mongoose buffering
-      });
+ const connection = await mongoose.connect(config.mongoose.url, {
+  ...config.mongoose.options,
+  maxPoolSize: 1,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 5000,
+  bufferCommands: false   // ✅ use this instead of bufferMaxEntries
+});
+
       
       cachedDb = connection;
       logger.info("Connected to MongoDB Atlas (Serverless)");
