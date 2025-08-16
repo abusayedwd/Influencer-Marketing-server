@@ -79,117 +79,59 @@
 //   });
 // }
 
-
 const mongoose = require("mongoose");
 const config = require("./config/config");
 const logger = require("./config/logger");
 const app = require("./app");
+const serverless = require("serverless-http");
 
-let server;
+let cachedDb = null;
 
-if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
-  // === Vercel serverless mode ===
-  const serverless = require("serverless-http");
-  
-  // Use cached connection to avoid timeout
-  let cachedDb = null;
+async function connectToDatabase() {
+  if (cachedDb) return cachedDb;
 
-  async function connectToDatabase() {
-    if (cachedDb) {
-      return cachedDb;
-    }
+  try {
+    const connection = await mongoose.connect(config.mongoose.url, {
+      ...config.mongoose.options,
+      maxPoolSize: 1,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 5000,
+      bufferCommands: false
+    });
 
-    try {
-      // Set shorter timeout for serverless
- const connection = await mongoose.connect(config.mongoose.url, {
-  ...config.mongoose.options,
-  maxPoolSize: 1,
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 5000,
-  bufferCommands: false   // ✅ use this instead of bufferMaxEntries
-});
+    cachedDb = connection;
+    logger.info("✅ Connected to MongoDB Atlas (Serverless)"); 
+    return cachedDb;
+  } catch (error) {
+    logger.error("❌ Database connection failed:", error);
+    throw error;
+  }
+}
 
-      
-      cachedDb = connection;
-      logger.info("Connected to MongoDB Atlas (Serverless)");
-      return cachedDb;
-    } catch (error) {
-      logger.error("Database connection failed:", error);
-      throw error;
+const handler = serverless(app);
+
+// === For Vercel ===
+module.exports = async (req, res) => {
+  try {
+    await connectToDatabase();
+    return handler(req, res);  // MUST return
+  } catch (error) {
+    logger.error("Handler error:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        error: "Internal Server Error",
+        message: error.message 
+      });
     }
   }
+};
 
-  // Export the serverless handler
-  module.exports = async (req, res) => {
-    try {
-      // Add timeout handling
-      const timeoutId = setTimeout(() => {
-        if (!res.headersSent) {
-          res.status(504).json({ error: 'Function timeout' });
-        }
-      }, 25000); // 25 second timeout (Vercel limit is 30s)
-
-      await connectToDatabase();
-      const handler = serverless(app);
-      const result = await handler(req, res);
-      
-      clearTimeout(timeoutId);
-      return result;
-    } catch (error) {
-      logger.error('Serverless handler error:', error);
-      if (!res.headersSent) {
-        res.status(500).json({ 
-          error: 'Internal Server Error',
-          message: error.message 
-        });
-      }
-    }
-  };
-
-} else {
-  // === Local development mode ===
-  const myIp = process.env.BACKEND_IP;
-
+// === For Local Dev ===
+if (require.main === module) {
   mongoose.connect(config.mongoose.url, config.mongoose.options).then(() => {
-    logger.info("Connected to MongoDB Atlas");
-
-    server = app.listen(config.port, myIp, () => {
-      logger.info(`Listening on https://${myIp}:${config.port}`);
+    const PORT = config.port || 3050;
+    app.listen(PORT, () => {
+      logger.info(`🚀 Server running on http://localhost:${PORT}`);
     });
-
-    // Socket.IO for local dev
-    const socketIo = require("socket.io");
-    const socketIO = require("./utils/socketIO");
-    const io = socketIo(server, {
-      cors: { origin: "*" },
-    });
-    socketIO(io);
-    global.io = io;
-  });
-
-  const exitHandler = () => {
-    if (server) {
-      server.close(() => {
-        logger.info("Server closed");
-        process.exit(1);
-      });
-    } else {
-      process.exit(1);
-    }
-  };
-
-  const unexpectedErrorHandler = (error) => {
-    logger.error(error);
-    exitHandler();
-  };
-
-  process.on("uncaughtException", unexpectedErrorHandler);
-  process.on("unhandledRejection", unexpectedErrorHandler);
-
-  process.on("SIGTERM", () => {
-    logger.info("SIGTERM received");
-    if (server) {
-      server.close();
-    }
   });
 }
