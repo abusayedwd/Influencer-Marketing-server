@@ -79,6 +79,7 @@
 //   });
 // }
 
+
 const mongoose = require("mongoose");
 const config = require("./config/config");
 const logger = require("./config/logger");
@@ -93,14 +94,14 @@ async function connectToDatabase() {
   try {
     const connection = await mongoose.connect(config.mongoose.url, {
       ...config.mongoose.options,
-      maxPoolSize: 1,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 5000,
+      maxPoolSize: 5,  // Increased pool size to handle more connections
+      serverSelectionTimeoutMS: 10000,  // Increased timeout to 10 seconds
+      socketTimeoutMS: 10000,          // Increased timeout to 10 seconds
       bufferCommands: false
     });
 
     cachedDb = connection;
-    logger.info("✅ Connected to MongoDB Atlas (Serverless)"); 
+    logger.info("✅ Connected to MongoDB Atlas (Serverless)");
     return cachedDb;
   } catch (error) {
     logger.error("❌ Database connection failed:", error);
@@ -113,25 +114,29 @@ const handler = serverless(app);
 // === For Vercel ===
 module.exports = async (req, res) => {
   try {
-    await connectToDatabase();
-    return handler(req, res);  // MUST return
+    await connectToDatabase();  // Ensure database connection is established
+    return handler(req, res);  // MUST return the handler to Vercel
   } catch (error) {
     logger.error("Handler error:", error);
     if (!res.headersSent) {
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Internal Server Error",
-        message: error.message 
+        message: error.message
       });
     }
   }
 };
 
-// === For Local Dev ===
+// === For Local Development ===
 if (require.main === module) {
-  mongoose.connect(config.mongoose.url, config.mongoose.options).then(() => {
-    const PORT = config.port || 3050;
-    app.listen(PORT, () => {
-      logger.info(`🚀 Server running on http://localhost:${PORT}`);
+  mongoose.connect(config.mongoose.url, config.mongoose.options)
+    .then(() => {
+      const PORT = config.port || 3050;
+      app.listen(PORT, () => {
+        logger.info(`🚀 Server running on http://localhost:${PORT}`);
+      });
+    })
+    .catch((error) => {
+      logger.error("❌ Database connection failed during local development:", error);
     });
-  });
 }
