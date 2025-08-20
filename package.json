@@ -11,7 +11,7 @@
     "vercel-build": "echo 'Building for Vercel'"
   },
     "engines": {
-    "node": "18.x"
+    "node": "22.x"
     
   },
   "author": "Sayed",
