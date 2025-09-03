@@ -8,6 +8,6 @@ module.exports = async (req, res) => {
     return handler(req, res);
   } catch (err) {
     console.error("Serverless error:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Internal Server Errorree" });
   }
 };
