@@ -1,22 +1,18 @@
 const { connectToDatabase } = require("../src/index");
 const { app } = require("../src/app");
 
-// Create the handler
-const handler = async (req, res) => {
+// Ensure this is the default export for Vercel
+export default async function handler(req, res) {
   try {
-    // Ensure database connection
+    // Connect to database
     await connectToDatabase();
     
-    // Handle the request with your app
+    // If your app is an Express app, you can use it directly
     return app(req, res);
   } catch (error) {
-    console.error("Serverless error:", error);
-    return res.status(500).json({ 
-      error: "Internal Server Error",
-      message: error.message 
+    console.error("Handler error:", error);
+    res.status(500).json({ 
+      error: "Internal Server Error" 
     });
   }
-};
-
-// Export for Vercel
-module.exports = handler;
+}
