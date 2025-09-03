@@ -1,14 +1,22 @@
-const serverless = require("serverless-http");
 const { connectToDatabase } = require("../src/index");
-const { app  } = require("../src/app");
+const { app } = require("../src/app");
 
-module.exports = async (req, res) => {
+// Create the handler
+const handler = async (req, res) => {
   try {
+    // Ensure database connection
     await connectToDatabase();
-    const handler = serverless(app);
-    return handler(req, res);
-  } catch (err) {
-    console.error("Serverless error:", err);
-    res.status(500).json({ error: "Internal Server Errorree" });
+    
+    // Handle the request with your app
+    return app(req, res);
+  } catch (error) {
+    console.error("Serverless error:", error);
+    return res.status(500).json({ 
+      error: "Internal Server Error",
+      message: error.message 
+    });
   }
-}; 
+};
+
+// Export for Vercel
+module.exports = handler;
