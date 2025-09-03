@@ -1,5 +1,5 @@
 const serverless = require("serverless-http");
-const { app, connectToDatabase } = require("../src/index");
+const { connectToDatabase } = require("../src/index");
 const { app  } = require("../src/app");
 
 module.exports = async (req, res) => {
