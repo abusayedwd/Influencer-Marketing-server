@@ -82,14 +82,12 @@
 
 
 
-
 const mongoose = require("mongoose");
 const config = require("./../src/config/config");
 const logger = require("./../src/config/logger");
 const app = require("./../src/app");
 const socketIo = require("socket.io");
 const socketIO = require("./../src/utils/socketIO");
-
 
 let server;
 let isConnected = false;
@@ -99,10 +97,11 @@ async function connectToDatabase() {
     console.log('Using existing database connection');
     return;
   }
-  
+
   try {
     console.log('Connecting to MongoDB...');
-    await mongoose.connect(config.mongoose.url, config.mongoose.options);
+    // Use createConnection for better pooling in serverless environments
+    const connection = mongoose.createConnection(config.mongoose.url, config.mongoose.options);
     isConnected = true;
     logger.info("Connected to MongoDB Atlas");
   } catch (error) {
@@ -114,39 +113,43 @@ async function connectToDatabase() {
 if (process.env.VERCEL) {
   // === Vercel serverless mode ===
   const serverless = require("serverless-http");
-  
+
   // Export for Vercel (this should be in api/index.js instead)
   const handler = async (req, res) => {
     try {
       console.log('Serverless function called:', req.url);
-      await connectToDatabase();
+      await connectToDatabase(); // Ensure the DB connection is established
       const serverlessHandler = serverless(app);
       return await serverlessHandler(req, res);
     } catch (error) {
       console.error('Serverless error:', error);
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: 'Internal Server Error',
-        message: error.message 
+        message: error.message
       });
     }
   };
-  
+
   // Export for both CommonJS and ES modules
   module.exports = handler;
   module.exports.default = handler;
-  
+
 } else {
   // === Local development mode ===
   const myIp = process.env.BACKEND_IP;
+  
+  // Connect to MongoDB for local development
   mongoose.connect(config.mongoose.url, config.mongoose.options).then(() => {
     logger.info("Connected to MongoDB Atlas");
+    
+    // Start the server
     server = app.listen(config.port, myIp, () => {
       logger.info(`Listening on https://${myIp}:${config.port}`);
     });
-    // Socket.IO for local dev
 
+    // Socket.IO for local dev
     const io = socketIo(server, {
-      cors: { origin: "*" },
+      cors: { origin: "*" }
     });
     socketIO(io);
     global.io = io;
@@ -171,7 +174,7 @@ if (process.env.VERCEL) {
   process.on("uncaughtException", unexpectedErrorHandler);
   process.on("unhandledRejection", unexpectedErrorHandler);
   process.on("SIGTERM", () => {
-    logger.info("SIGTERM received"); 
+    logger.info("SIGTERM received");
     if (server) {
       server.close();
     }
