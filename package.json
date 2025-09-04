@@ -8,7 +8,9 @@
     "build": "webpack --mode=production",
     "seed": "node src/utils/seeder.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "vercel-build": "echo 'Building for Vercel'"
+    "vercel-build": "echo 'Building for Vercel'",
+    "start": "node index.js"
+     
   },
     "engines": {
     "node": "22.x"
