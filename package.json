@@ -2,15 +2,13 @@
   "name": "influencer-brand-server",
   "version": "1.0.0",
   "description": "influencer-brand-server",
-  "main": "api/index.js",
+  "main": "index.js",
   "scripts": {
-    "dev": "nodemon api/index.js",
+    "dev": "nodemon src/index.js",
     "build": "webpack --mode=production",
     "seed": "node src/utils/seeder.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "vercel-build": "echo 'Building for Vercel'",
-    "start": "node index.js"
-     
+    "vercel-build": "echo 'Building for Vercel'"
   },
     "engines": {
     "node": "22.x"
