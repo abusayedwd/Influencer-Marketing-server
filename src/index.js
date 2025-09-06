@@ -9,7 +9,7 @@
 
 // if (process.env.VERCEL) {
 //   // === Vercel serverless mode ===
-//   const serverless = require("serverless-http");
+//   const serverless = require("serverless-http"); 
 //   let isConnected = false;
 
 //   async function connectToDatabase() {
