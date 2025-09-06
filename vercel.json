@@ -1,27 +1,18 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "api/[...all].js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/[...all].js"
+      "source": "/api/(.*)",
+      "destination": "/api/[...all]"
     },
     {
-      "src": "/(.*)",
-      "dest": "/api/[...all].js"
+      "source": "/(.*)",
+      "destination": "/api/[...all]"
     }
   ],
   "functions": {
     "api/[...all].js": {
       "maxDuration": 10
     }
-  },
-  "env": {
-    "NODE_ENV": "production"
   }
 }
