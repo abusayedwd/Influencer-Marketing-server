@@ -80,7 +80,6 @@
 // }
 
 
-
 const mongoose = require("mongoose");
 const config = require("./config/config");
 const logger = require("./config/logger");
@@ -108,14 +107,31 @@ if (process.env.VERCEL) {
 
   module.exports = async (req, res) => {
     try {
+      // Set timeout headers
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      
       console.log('Serverless function called:', req.url);
+      
+      // Quick response for health checks to avoid timeouts
+      if (req.url === '/' || req.url === '/health') {
+        return res.json({
+          status: 'ok',
+          message: 'API is running',
+          timestamp: new Date().toISOString(),
+          environment: 'serverless'
+        });
+      }
       
       await connectToDatabase();
       const handler = serverless(app);
       return handler(req, res);
     } catch (error) {
       console.error('Serverless error:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
+      return res.status(500).json({ 
+        error: 'Internal Server Error',
+        message: error.message,
+        timestamp: new Date().toISOString()
+      });
     }
   };
 

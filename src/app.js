@@ -87,10 +87,12 @@ app.get("/", (req, res) => {
 });
  
 app.get("/health", (req, res) => {
-  res.json({ 
-    status: "healthy",
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString()
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    message: 'API is working',
+    method: req.method,
+    uptime: process.uptime()
   });
 });
 
