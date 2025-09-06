@@ -79,58 +79,75 @@
 //   });
 // }
 
+
+
+
 const mongoose = require("mongoose");
 const config = require("./config/config");
 const logger = require("./config/logger");
 const app = require("./app");
 
-let server;
+let server; 
 
 if (process.env.VERCEL) {
   // === Vercel serverless mode ===
   const serverless = require("serverless-http");
-  let isConnected = false;
+  let cachedDb = null;
 
   async function connectToDatabase() {
-    if (isConnected) return;
-    
+    if (cachedDb && mongoose.connection.readyState === 1) {
+      console.log("Using cached database connection");
+      return cachedDb;
+    }
+
     try {
-      await mongoose.connect(config.mongoose.url, config.mongoose.options);
-      isConnected = true;
-      logger.info("Connected to MongoDB Atlas");
+      console.log("Creating new database connection...");
+      
+      const opts = {
+        bufferCommands: false,
+        bufferMaxEntries: 0,
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        maxPoolSize: 1,
+        serverSelectionTimeoutMS: 8000,
+        socketTimeoutMS: 8000,
+        connectTimeoutMS: 8000,
+        maxIdleTimeMS: 30000,
+      };
+
+      const db = await mongoose.connect(config.mongoose.url, opts);
+      cachedDb = db;
+      console.log("Connected to MongoDB Atlas successfully");
+      return db;
+      
     } catch (error) {
-      logger.error("MongoDB connection error:", error);
+      console.error("MongoDB connection failed:", error);
+      cachedDb = null;
       throw error;
     }
   }
 
   module.exports = async (req, res) => {
     try {
-      // Set timeout headers
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      console.log(`${req.method} ${req.url} - Starting request`);
       
-      console.log('Serverless function called:', req.url);
+      // Connect to database first
+      await connectToDatabase();
       
-      // Quick response for health checks to avoid timeouts
-      if (req.url === '/' || req.url === '/health') {
-        return res.json({
-          status: 'ok',
-          message: 'API is running',
-          timestamp: new Date().toISOString(),
-          environment: 'serverless'
+      // Create and execute serverless handler
+      const handler = serverless(app);
+      return await handler(req, res);
+      
+    } catch (error) {
+      console.error("Serverless error:", error);
+      
+      if (!res.headersSent) {
+        return res.status(500).json({
+          error: "Internal Server Error",
+          message: error.message,
+          timestamp: new Date().toISOString()
         });
       }
-      
-      await connectToDatabase();
-      const handler = serverless(app);
-      return handler(req, res);
-    } catch (error) {
-      console.error('Serverless error:', error);
-      return res.status(500).json({ 
-        error: 'Internal Server Error',
-        message: error.message,
-        timestamp: new Date().toISOString()
-      });
     }
   };
 
@@ -146,13 +163,17 @@ if (process.env.VERCEL) {
     });
 
     // Socket.IO for local dev
-    const socketIo = require("socket.io");
-    const socketIO = require("./utils/socketIO");
-    const io = socketIo(server, {
-      cors: { origin: "*" },
-    });
-    socketIO(io);
-    global.io = io;
+    try {
+      const socketIo = require("socket.io");
+      const socketIO = require("./utils/socketIO");
+      const io = socketIo(server, {
+        cors: { origin: "*" },
+      });
+      socketIO(io);
+      global.io = io;
+    } catch (error) {
+      logger.warn("Socket.IO setup failed:", error.message);
+    }
   }).catch((error) => {
     logger.error("MongoDB connection failed:", error);
     process.exit(1);
