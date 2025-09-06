@@ -123,12 +123,10 @@
 
 
 
-  
-const express = require('express');
+  const express = require('express');
 const cors = require('cors');
 const httpStatus = require('http-status');
-const config = require('./config/config');
-const routes = require("./routes/v1")
+const routes = require('./routes/v1');
 const { errorConverter, errorHandler } = require('./middlewares/error');
 const ApiError = require('./utils/ApiError');
 
@@ -139,8 +137,10 @@ app.set('trust proxy', 1);
 
 // Enable CORS
 app.use(cors({
-  origin: true, // Allow all origins for now, restrict in production
-  credentials: true
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Parse JSON requests
@@ -152,7 +152,8 @@ app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    platform: process.env.VERCEL ? 'Vercel' : 'Local'
   });
 });
 
@@ -164,14 +165,15 @@ app.get('/', (req, res) => {
   res.json({
     message: 'API is running!',
     version: '1.0.0',
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    platform: process.env.VERCEL ? 'Vercel Serverless' : 'Local Development'
   });
 });
 
-// Send back a 404 error for any unknown api request
+// Catch 404 and forward to error handler
 app.use((req, res, next) => {
   console.log(`404 - Route not found: ${req.method} ${req.originalUrl}`);
-  next(new ApiError(httpStatus.NOT_FOUND, 'Not found'));
+  next(new ApiError(httpStatus.NOT_FOUND, `Route ${req.originalUrl} not found`));
 });
 
 // Convert error to ApiError, if needed
