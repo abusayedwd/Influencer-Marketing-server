@@ -1,7 +1,7 @@
 // api/[...all].js
 const mongoose = require("mongoose");
-const config = require("./../src/config/config");
-const app = require("./../src/app");
+const config = require("../config/config");
+const app = require("../app");
 
 let cachedDb = null;
 
@@ -21,9 +21,6 @@ async function connectToDatabase() {
     
     const opts = {
       bufferCommands: false,
-      bufferMaxEntries: 0,
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       maxPoolSize: 1,
       serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 10000,

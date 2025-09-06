@@ -81,70 +81,97 @@
 
 
 
-
 const mongoose = require("mongoose");
 const config = require("./config/config");
 const logger = require("./config/logger");
 const app = require("./app");
 
-let server; 
+let server;
+let cachedDb = null;
 
-if (process.env.VERCEL) {
-  // === Vercel serverless mode ===
-  const serverless = require("serverless-http");
-  let cachedDb = null;
-
-  async function connectToDatabase() {
-    if (cachedDb && mongoose.connection.readyState === 1) {
-      console.log("Using cached database connection");
-      return cachedDb;
-    }
-
-    try {
-      console.log("Creating new database connection...");
-      
-      const opts = {
-        bufferCommands: false,
-        bufferMaxEntries: 0,
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        maxPoolSize: 1,
-        serverSelectionTimeoutMS: 8000,
-        socketTimeoutMS: 8000,
-        connectTimeoutMS: 8000,
-        maxIdleTimeMS: 30000,
-      };
-
-      const db = await mongoose.connect(config.mongoose.url, opts);
-      cachedDb = db;
-      console.log("Connected to MongoDB Atlas successfully");
-      return db;
-      
-    } catch (error) {
-      console.error("MongoDB connection failed:", error);
-      cachedDb = null;
-      throw error;
-    }
+// Database connection function for serverless
+async function connectToDatabase() {
+  if (cachedDb && mongoose.connection.readyState === 1) {
+    console.log("Using cached database connection");
+    return cachedDb;
   }
 
+  try {
+    console.log("Creating new database connection...");
+    
+    // Disconnect any existing connection first
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
+    
+    const opts = {
+      bufferCommands: false,
+      maxPoolSize: 1, // Keep connection pool minimal for serverless
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+      maxIdleTimeMS: 30000,
+      // Add these for better serverless performance
+      minPoolSize: 0,
+      heartbeatFrequencyMS: 30000,
+    };
+
+    const db = await mongoose.connect(config.mongoose.url, opts);
+    cachedDb = db;
+    console.log("Connected to MongoDB Atlas successfully");
+    return db;
+    
+  } catch (error) {
+    console.error("MongoDB connection failed:", error);
+    cachedDb = null;
+    throw error;
+  }
+}
+
+if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+  // === Vercel serverless mode ===
+  
   module.exports = async (req, res) => {
     try {
-      console.log(`${req.method} ${req.url} - Starting request`);
+      console.log(`${req.method} ${req.url} - Starting serverless request`);
       
-      // Connect to database first
+      // Set CORS headers for all requests
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      
+      // Handle OPTIONS requests for CORS preflight
+      if (req.method === 'OPTIONS') {
+        res.status(200).end();
+        return;
+      }
+      
+      // Connect to database
       await connectToDatabase();
       
-      // Create and execute serverless handler
-      const handler = serverless(app);
+      // Import serverless-http here to avoid issues
+      const serverless = require("serverless-http");
+      const handler = serverless(app, {
+        request: function(request, event, context) {
+          // Add any request modifications here
+          request.context = context;
+          request.event = event;
+        },
+        response: function(response, event, context) {
+          // Add any response modifications here
+        }
+      });
+      
       return await handler(req, res);
       
     } catch (error) {
-      console.error("Serverless error:", error);
+      console.error("Serverless handler error:", error);
       
       if (!res.headersSent) {
         return res.status(500).json({
           error: "Internal Server Error",
           message: error.message,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
           timestamp: new Date().toISOString()
         });
       }
@@ -154,23 +181,32 @@ if (process.env.VERCEL) {
 } else {
   // === Local development mode ===
   const myIp = process.env.BACKEND_IP || '0.0.0.0';
+  const port = config.port || 3050;
 
-  mongoose.connect(config.mongoose.url, config.mongoose.options).then(() => {
+  // Connect to MongoDB for local development
+  mongoose.connect(config.mongoose.url, config.mongoose.options || {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  }).then(() => {
     logger.info("Connected to MongoDB Atlas");
 
-    server = app.listen(config.port, myIp, () => {
-      logger.info(`Listening on http://${myIp}:${config.port}`);
+    server = app.listen(port, myIp, () => {
+      logger.info(`Listening on http://${myIp}:${port}`);
     });
 
-    // Socket.IO for local dev
+    // Socket.IO setup for local development only
     try {
       const socketIo = require("socket.io");
       const socketIO = require("./utils/socketIO");
       const io = socketIo(server, {
-        cors: { origin: "*" },
+        cors: { 
+          origin: "*",
+          methods: ["GET", "POST"]
+        },
       });
       socketIO(io);
       global.io = io;
+      logger.info("Socket.IO initialized");
     } catch (error) {
       logger.warn("Socket.IO setup failed:", error.message);
     }
@@ -179,10 +215,12 @@ if (process.env.VERCEL) {
     process.exit(1);
   });
 
+  // Graceful shutdown handlers
   const exitHandler = () => {
     if (server) {
       server.close(() => {
         logger.info("Server closed");
+        mongoose.connection.close();
         process.exit(1);
       });
     } else {
@@ -191,7 +229,7 @@ if (process.env.VERCEL) {
   };
 
   const unexpectedErrorHandler = (error) => {
-    logger.error(error);
+    logger.error("Unexpected error:", error);
     exitHandler();
   };
 
@@ -200,6 +238,13 @@ if (process.env.VERCEL) {
 
   process.on("SIGTERM", () => {
     logger.info("SIGTERM received");
+    if (server) {
+      server.close();
+    }
+  });
+
+  process.on("SIGINT", () => {
+    logger.info("SIGINT received");
     if (server) {
       server.close();
     }
